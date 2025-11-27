@@ -28,6 +28,11 @@ python -m http.server 8000
 
 Then visit [http://localhost:8000/family_tree_app.html](http://localhost:8000/family_tree_app.html).
 
+## Deployment
+
+- **Production**: Pushing to `main` triggers the GitHub Pages workflow to publish the site to the primary Pages URL.
+- **Testing**: Pushing to `testing` triggers a preview deployment with its own unique URL so you can verify changes without affecting the main site. The preview link is reported in the workflow run summary under the deployment step.
+
 ## Importing and exporting data
 
 - **Export**: Use the **Export** button in the header to download the current tree as a JSON file.
