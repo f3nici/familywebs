@@ -45,3 +45,8 @@ All changes are automatically saved to `localStorage` in your browser.
 ## Sharing
 
 Use the **Share** button in the header to copy a URL that encodes the current tree data. Send the link to others so they can explore your tree without editing it.
+
+## Deployments
+
+- **Main branch**: Deploys to the standard GitHub Pages URL via the `Deploy static site to GitHub Pages` workflow.
+- **Testing branch**: Pushes to the `testing` branch trigger the `Deploy testing branch to GitHub Pages preview` workflow, which publishes a preview site at a dedicated URL shown in the workflow run summary.
