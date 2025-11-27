@@ -13,7 +13,50 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div id="root"></div>
+    <div id="root" class="app-placeholder">
+        <p class="placeholder-title">Loading Family Roots…</p>
+        <p class="placeholder-subtitle">
+            If you continue to see a blank screen, make sure JavaScript is enabled and that
+            the <code>app.js</code> and <code>styles.css</code> files are available in the same folder as this HTML file.
+        </p>
+    </div>
+
+    <noscript>
+        <div class="load-error">
+            <p>This page requires JavaScript to run the Family Roots app.</p>
+            <p>Please enable JavaScript and reload the page.</p>
+        </div>
+    </noscript>
+
+    <script>
+        (() => {
+            const root = document.getElementById('root');
+
+            const showLoadError = () => {
+                if (!root) return;
+                root.innerHTML = `
+                    <div class="load-error">
+                        <p>We couldn't load the Family Roots app.</p>
+                        <p>Confirm that <strong>app.js</strong> and <strong>styles.css</strong> are being served correctly.</p>
+                    </div>
+                `;
+                root.classList.add('app-placeholder');
+            };
+
+            window.__FAMILY_TREE_APP_READY__ = () => {
+                root?.classList.remove('app-placeholder');
+            };
+
+            window.addEventListener('DOMContentLoaded', () => {
+                setTimeout(() => {
+                    if (!window.__FAMILY_TREE_APP_LOADED__) {
+                        showLoadError();
+                    }
+                }, 2000);
+            });
+        })();
+    </script>
+
     <script
         type="text/babel"
         data-presets="env,react"

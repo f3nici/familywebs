@@ -39,6 +39,38 @@
             line-height: 1.6;
         }
 
+        .app-placeholder {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-secondary);
+        }
+
+        .placeholder-title {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            color: var(--text-primary);
+        }
+
+        .placeholder-subtitle {
+            max-width: 680px;
+            font-size: 0.95rem;
+        }
+
+        .load-error {
+            max-width: 720px;
+            padding: 16px 18px;
+            background: #fff5f5;
+            color: #7c1d1d;
+            border: 1px solid #f5d0d0;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-soft);
+        }
+
         /* Scrollbar styling */
         ::-webkit-scrollbar {
             width: 8px;
