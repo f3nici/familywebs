@@ -71,8 +71,259 @@
             mariages: []
         };
 
+        const NODE_WIDTH = 180;
+        const NODE_HEIGHT = 140;
+        const H_SPACING = 80;
+        const V_SPACING = 180;
+        const COUPLE_GAP = 30;
+        const CANVAS_PADDING = 140;
+
+        const buildGenerations = (treeData) => {
+            const people = treeData.people;
+            const marriages = treeData.mariages;
+            const personGenerations = {};
+            const visited = new Set();
+
+            const childIds = new Set();
+            const parentIds = new Set();
+
+            marriages.forEach(marriage => {
+                if (marriage.length >= 2) {
+                    parentIds.add(marriage[0]);
+                    parentIds.add(marriage[1]);
+                    marriage.slice(2).forEach(childId => childIds.add(childId));
+                }
+            });
+
+            const rootIds = [...parentIds].filter(id => !childIds.has(id));
+
+            if (rootIds.length === 0) {
+                const sortedByBirth = Object.entries(people).sort((a, b) => {
+                    const birthA = a[1].events?.find(e => e.type === '$_BIRTH')?.dateStart || '9999';
+                    const birthB = b[1].events?.find(e => e.type === '$_BIRTH')?.dateStart || '9999';
+                    return birthA.localeCompare(birthB);
+                });
+                if (sortedByBirth.length > 0) {
+                    rootIds.push(sortedByBirth[0][0]);
+                }
+            }
+
+            const queue = rootIds.map(id => ({ id, gen: 0 }));
+
+            while (queue.length > 0) {
+                const { id, gen } = queue.shift();
+                if (visited.has(id)) continue;
+                visited.add(id);
+                personGenerations[id] = gen;
+
+                marriages.forEach(marriage => {
+                    if (marriage.length >= 2 && (marriage[0] === id || marriage[1] === id)) {
+                        const spouseId = marriage[0] === id ? marriage[1] : marriage[0];
+                        if (spouseId && !visited.has(spouseId)) {
+                            queue.push({ id: spouseId, gen });
+                        }
+                        marriage.slice(2).forEach(childId => {
+                            if (!visited.has(childId)) {
+                                queue.push({ id: childId, gen: gen + 1 });
+                            }
+                        });
+                    }
+                });
+            }
+
+            Object.keys(people).forEach(id => {
+                if (!visited.has(id)) {
+                    personGenerations[id] = 0;
+                }
+            });
+
+            const generations = {};
+            Object.entries(personGenerations).forEach(([id, gen]) => {
+                if (!generations[gen]) generations[gen] = [];
+                generations[gen].push(id);
+            });
+
+            return generations;
+        };
+
+        const findParents = (treeData, childId) => {
+            return treeData.mariages
+                .filter(marriage => marriage.slice(2).includes(childId))
+                .flatMap(marriage => marriage.slice(0, 2).filter(Boolean));
+        };
+
+        const computeStrictLayout = (treeData) => {
+            const generations = buildGenerations(treeData);
+            const sortedGenerations = Object.entries(generations).sort((a, b) => Number(a[0]) - Number(b[0]));
+            const positions = {};
+            let maxX = 0;
+
+            sortedGenerations.forEach(([gen, ids]) => {
+                const y = CANVAS_PADDING + Number(gen) * (NODE_HEIGHT + V_SPACING);
+                const groupings = [];
+                const used = new Set();
+
+                treeData.mariages.forEach(marriage => {
+                    const [p1, p2] = marriage;
+                    if (ids.includes(p1) && ids.includes(p2)) {
+                        groupings.push({ type: 'couple', members: [p1, p2] });
+                        used.add(p1);
+                        used.add(p2);
+                    }
+                });
+
+                ids.forEach(id => {
+                    if (!used.has(id)) {
+                        groupings.push({ type: 'single', members: [id] });
+                    }
+                });
+
+                groupings.sort((a, b) => a.members[0].localeCompare(b.members[0]));
+
+                let x = CANVAS_PADDING;
+                groupings.forEach(group => {
+                    const width = group.members.length * NODE_WIDTH + (group.members.length - 1) * COUPLE_GAP;
+                    group.members.forEach((id, idx) => {
+                        positions[id] = { x: x + idx * (NODE_WIDTH + COUPLE_GAP), y };
+                        maxX = Math.max(maxX, positions[id].x + NODE_WIDTH);
+                    });
+                    x += width + H_SPACING;
+                });
+            });
+
+            sortedGenerations.forEach(([gen, ids]) => {
+                if (Number(gen) === 0) return;
+                const y = CANVAS_PADDING + Number(gen) * (NODE_HEIGHT + V_SPACING);
+                const placements = ids.map(id => {
+                    const parents = findParents(treeData, id);
+                    const parentCenters = parents
+                        .map(pid => positions[pid]?.x + NODE_WIDTH / 2)
+                        .filter(v => typeof v === 'number');
+                    const target = parentCenters.length
+                        ? parentCenters.reduce((sum, val) => sum + val, 0) / parentCenters.length
+                        : null;
+                    return { id, target };
+                }).sort((a, b) => (a.target ?? 0) - (b.target ?? 0));
+
+                let x = CANVAS_PADDING;
+                placements.forEach(item => {
+                    const ideal = item.target ?? (x + NODE_WIDTH / 2);
+                    x = Math.max(x, ideal - NODE_WIDTH / 2);
+                    positions[item.id] = { x, y };
+                    maxX = Math.max(maxX, x + NODE_WIDTH);
+                    x += NODE_WIDTH + H_SPACING;
+                });
+            });
+
+            const marriages = treeData.mariages.map((marriage, idx) => ({
+                id: `marriage-${idx}`,
+                parents: marriage.slice(0, 2).filter(Boolean),
+                children: marriage.slice(2)
+            }));
+
+            const size = {
+                width: Math.max(maxX + CANVAS_PADDING, window.innerWidth || 1200),
+                height: CANVAS_PADDING + sortedGenerations.length * (NODE_HEIGHT + V_SPACING) + CANVAS_PADDING,
+            };
+
+            return { positions, marriages, size };
+        };
+
+        const computeFluidLayout = (treeData) => {
+            const positions = {};
+            const marriages = treeData.mariages.map((marriage, idx) => ({
+                id: `marriage-${idx}`,
+                parents: marriage.slice(0, 2).filter(Boolean),
+                children: marriage.slice(2)
+            }));
+
+            const sortedPeople = Object.entries(treeData.people).sort((a, b) => {
+                const birthA = a[1].events?.find(e => e.type === '$_BIRTH')?.dateStart || '9999';
+                const birthB = b[1].events?.find(e => e.type === '$_BIRTH')?.dateStart || '9999';
+                return birthA.localeCompare(birthB);
+            });
+
+            const groups = [];
+            const placed = new Set();
+
+            marriages.forEach(m => {
+                if (m.parents.length > 0) {
+                    groups.push({
+                        type: 'family',
+                        members: m.parents,
+                        children: m.children,
+                    });
+                    m.parents.forEach(p => placed.add(p));
+                }
+            });
+
+            sortedPeople.forEach(([id]) => {
+                if (!placed.has(id)) {
+                    groups.push({ type: 'single', members: [id], children: [] });
+                }
+            });
+
+            const groupsPerRow = 3;
+            let currentRow = 0;
+            let currentCol = 0;
+            let maxWidth = 0;
+            let maxHeight = 0;
+
+            groups.forEach((group, index) => {
+                if (index > 0 && index % groupsPerRow === 0) {
+                    currentRow += 1;
+                    currentCol = 0;
+                }
+
+                const baseX = CANVAS_PADDING + currentCol * (NODE_WIDTH * 2 + H_SPACING * 2);
+                const baseY = CANVAS_PADDING + currentRow * (NODE_HEIGHT * 2 + V_SPACING);
+
+                group.members.forEach((id, idx) => {
+                    if (!positions[id]) {
+                        positions[id] = {
+                            x: baseX + idx * (NODE_WIDTH + COUPLE_GAP),
+                            y: baseY,
+                        };
+                        maxWidth = Math.max(maxWidth, positions[id].x + NODE_WIDTH);
+                        maxHeight = Math.max(maxHeight, positions[id].y + NODE_HEIGHT);
+                    }
+                });
+
+                const childStartX = baseX;
+                group.children.forEach((id, idx) => {
+                    if (!positions[id]) {
+                        positions[id] = {
+                            x: childStartX + idx * (NODE_WIDTH + COUPLE_GAP),
+                            y: baseY + NODE_HEIGHT + V_SPACING / 2,
+                        };
+                        maxWidth = Math.max(maxWidth, positions[id].x + NODE_WIDTH);
+                        maxHeight = Math.max(maxHeight, positions[id].y + NODE_HEIGHT);
+                    }
+                });
+
+                currentCol += 1;
+            });
+
+            const size = {
+                width: Math.max(maxWidth + CANVAS_PADDING, window.innerWidth || 1200),
+                height: Math.max(maxHeight + CANVAS_PADDING, window.innerHeight || 800),
+            };
+
+            return { positions, marriages, size };
+        };
+
+        const computeTreeLayout = (treeData, mode) => {
+            if (!treeData || Object.keys(treeData.people).length === 0) {
+                return { positions: {}, marriages: [], size: { width: 1200, height: 800 } };
+            }
+
+            return mode === 'strict'
+                ? computeStrictLayout(treeData)
+                : computeFluidLayout(treeData);
+        };
+
         // Person Card Component
-        const PersonCard = ({ person, personId, isSelected, onClick, isEditMode, compact = false }) => {
+        const PersonCard = ({ person, personId, isSelected, onClick, isEditMode, compact = false, style = {}, className = '' }) => {
             const birthEvent = person.events?.find(e => e.type === '$_BIRTH');
             const deathEvent = person.events?.find(e => e.type === '$_DEATH');
             const isDeceased = !!deathEvent;
@@ -81,10 +332,10 @@
                               person.gender === 'FEMALE' ? 'avatar-female' : 'avatar-other';
 
             return (
-                <div 
-                    className={`tree-node ${isSelected ? 'selected' : ''} ${isDeceased ? 'deceased' : ''}`}
+                <div
+                    className={`tree-node ${isSelected ? 'selected' : ''} ${isDeceased ? 'deceased' : ''} ${className}`}
                     onClick={() => onClick(personId)}
-                    style={compact ? { minWidth: '140px', padding: '16px 20px' } : {}}
+                    style={{ ...(compact ? { minWidth: '140px', padding: '16px 20px' } : {}), ...style }}
                 >
                     <div className={`node-avatar ${avatarClass}`} style={compact ? { width: '50px', height: '50px', fontSize: '1.2rem' } : {}}>
                         {getInitials(person.name)}
@@ -628,136 +879,225 @@
             );
         };
 
-        // Fluid Tree View - Shows all people as cards with visual relationship indicators
-        const FluidTreeView = ({ treeData, selectedPerson, onSelectPerson, isEditMode }) => {
-            const sortedPeople = useMemo(() => {
-                return Object.entries(treeData.people).sort((a, b) => {
-                    const birthA = a[1].events?.find(e => e.type === '$_BIRTH')?.dateStart || '9999';
-                    const birthB = b[1].events?.find(e => e.type === '$_BIRTH')?.dateStart || '9999';
-                    return birthA.localeCompare(birthB);
+        const TreeViewport = ({ treeData, viewMode, selectedPerson, onSelectPerson }) => {
+            const { positions, marriages, size } = useMemo(() => computeTreeLayout(treeData, viewMode), [treeData, viewMode]);
+            const containerRef = useRef(null);
+            const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
+            const dragging = useRef(null);
+
+            const anchors = useMemo(() => {
+                return Object.entries(positions).reduce((acc, [id, pos]) => {
+                    acc[id] = {
+                        top: { x: pos.x + NODE_WIDTH / 2, y: pos.y },
+                        bottom: { x: pos.x + NODE_WIDTH / 2, y: pos.y + NODE_HEIGHT },
+                        center: { x: pos.x + NODE_WIDTH / 2, y: pos.y + NODE_HEIGHT / 2 },
+                    };
+                    return acc;
+                }, {});
+            }, [positions]);
+
+            const marriageEdges = useMemo(() => {
+                return marriages
+                    .map(m => {
+                        if (m.parents.length < 2) return null;
+                        const [p1, p2] = m.parents;
+                        const a1 = anchors[p1];
+                        const a2 = anchors[p2];
+                        if (!a1 || !a2) return null;
+                        const mid = {
+                            x: (a1.center.x + a2.center.x) / 2,
+                            y: Math.min(a1.bottom.y, a2.bottom.y) + 12,
+                        };
+                        return { ...m, a1, a2, mid };
+                    })
+                    .filter(Boolean);
+            }, [marriages, anchors]);
+
+            const parentChildEdges = useMemo(() => {
+                return marriages.flatMap(m => {
+                    const parentAnchors = m.parents.map(pid => anchors[pid]).filter(Boolean);
+                    if (parentAnchors.length === 0) return [];
+                    const midX = parentAnchors.reduce((sum, a) => sum + a.bottom.x, 0) / parentAnchors.length;
+                    const midY = Math.max(...parentAnchors.map(a => a.bottom.y)) + 6;
+
+                    return m.children
+                        .map(childId => {
+                            const childAnchor = anchors[childId];
+                            if (!childAnchor) return null;
+                            return {
+                                id: `${m.id}-${childId}`,
+                                from: { x: midX, y: midY },
+                                to: { x: childAnchor.top.x, y: childAnchor.top.y },
+                            };
+                        })
+                        .filter(Boolean);
                 });
-            }, [treeData.people]);
+            }, [marriages, anchors]);
+
+            const updateZoom = useCallback((deltaScale, focalPoint = null) => {
+                setTransform(prev => {
+                    const container = containerRef.current;
+                    if (!container) return prev;
+                    const rect = container.getBoundingClientRect();
+                    const focus = focalPoint || { x: rect.width / 2, y: rect.height / 2 };
+
+                    const nextScale = Math.min(2.5, Math.max(0.4, prev.scale * deltaScale));
+                    const scaleRatio = nextScale / prev.scale;
+
+                    const nextX = (prev.x - focus.x) * scaleRatio + focus.x;
+                    const nextY = (prev.y - focus.y) * scaleRatio + focus.y;
+
+                    return { x: nextX, y: nextY, scale: nextScale };
+                });
+            }, []);
+
+            const handleWheel = useCallback((e) => {
+                if (!containerRef.current) return;
+                if (e.ctrlKey || e.metaKey || e.altKey) {
+                    e.preventDefault();
+                    const rect = containerRef.current.getBoundingClientRect();
+                    updateZoom(e.deltaY < 0 ? 1.1 : 0.9, { x: e.clientX - rect.left, y: e.clientY - rect.top });
+                }
+            }, [updateZoom]);
+
+            const handlePointerDown = (e) => {
+                if (e.button !== 0) return;
+                if (e.target.closest('.tree-node')) return;
+                if (!containerRef.current) return;
+                dragging.current = {
+                    startX: e.clientX,
+                    startY: e.clientY,
+                    origX: transform.x,
+                    origY: transform.y,
+                };
+                containerRef.current.setPointerCapture(e.pointerId);
+            };
+
+            const handlePointerMove = (e) => {
+                if (!dragging.current) return;
+                const dx = e.clientX - dragging.current.startX;
+                const dy = e.clientY - dragging.current.startY;
+                setTransform(prev => ({ ...prev, x: dragging.current.origX + dx, y: dragging.current.origY + dy }));
+            };
+
+            const endDrag = (e) => {
+                if (dragging.current && containerRef.current) {
+                    containerRef.current.releasePointerCapture(e.pointerId);
+                }
+                dragging.current = null;
+            };
+
+            useEffect(() => {
+                const container = containerRef.current;
+                if (!container) return;
+                const rect = container.getBoundingClientRect();
+                const centeredX = (rect.width - size.width) / 2;
+                const centeredY = (rect.height - size.height) / 2;
+                setTransform(prev => ({ ...prev, x: centeredX, y: centeredY, scale: 1 }));
+            }, [size.width, size.height, viewMode]);
+
+            const resetView = () => {
+                const container = containerRef.current;
+                if (!container) return;
+                const rect = container.getBoundingClientRect();
+                const centeredX = (rect.width - size.width) / 2;
+                const centeredY = (rect.height - size.height) / 2;
+                setTransform({ x: centeredX, y: centeredY, scale: 1 });
+            };
 
             return (
-                <div className="fluid-tree">
-                    {sortedPeople.map(([personId, person]) => (
-                        <PersonCard 
-                            key={personId}
-                            person={person}
-                            personId={personId}
-                            isSelected={selectedPerson === personId}
-                            onClick={onSelectPerson}
-                            isEditMode={isEditMode}
-                            compact={true}
-                        />
-                    ))}
-                </div>
-            );
-        };
+                <div className="tree-viewport pannable" ref={containerRef} onWheel={handleWheel}>
+                    <div
+                        className="tree-stage"
+                        onPointerDown={handlePointerDown}
+                        onPointerMove={handlePointerMove}
+                        onPointerUp={endDrag}
+                        onPointerLeave={endDrag}
+                        onPointerCancel={endDrag}
+                        style={{ transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})` }}
+                    >
+                        <div className="tree-content" style={{ width: `${size.width}px`, height: `${size.height}px` }}>
+                            <svg className="tree-overlay" width={size.width} height={size.height}>
+                                <defs>
+                                    <marker id="arrow" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+                                        <path d="M0,0 L0,6 L9,3 z" fill="var(--accent-sage)" />
+                                    </marker>
+                                    <marker id="marriage-dot" markerWidth="8" markerHeight="8" refX="4" refY="4">
+                                        <circle cx="4" cy="4" r="3" fill="var(--accent-warm)" />
+                                    </marker>
+                                </defs>
+                                {marriageEdges.map(edge => (
+                                    <line
+                                        key={edge.id}
+                                        x1={edge.a1.center.x}
+                                        y1={edge.a1.center.y}
+                                        x2={edge.a2.center.x}
+                                        y2={edge.a2.center.y}
+                                        className="edge marriage-edge"
+                                        markerStart="url(#marriage-dot)"
+                                        markerEnd="url(#marriage-dot)"
+                                    />
+                                ))}
+                                {parentChildEdges.map(edge => (
+                                    <path
+                                        key={edge.id}
+                                        d={`M ${edge.from.x} ${edge.from.y} L ${edge.from.x} ${(edge.from.y + edge.to.y) / 2} L ${edge.to.x} ${edge.to.y}`}
+                                        className="edge parent-edge"
+                                        markerEnd="url(#arrow)"
+                                    />
+                                ))}
+                            </svg>
 
-        // Strict Tree View - Hierarchical generations view
-        const StrictTreeView = ({ treeData, selectedPerson, onSelectPerson, isEditMode }) => {
-            // Build generation data
-            const generations = useMemo(() => {
-                const people = treeData.people;
-                const marriages = treeData.mariages;
-                const personGenerations = {};
-                const visited = new Set();
-                
-                // Find root people (those who appear as parents but not as children)
-                const childIds = new Set();
-                const parentIds = new Set();
-                
-                marriages.forEach(marriage => {
-                    if (marriage.length >= 2) {
-                        parentIds.add(marriage[0]);
-                        parentIds.add(marriage[1]);
-                        marriage.slice(2).forEach(childId => childIds.add(childId));
-                    }
-                });
-                
-                const rootIds = [...parentIds].filter(id => !childIds.has(id));
-                
-                // If no roots found, use oldest people by birth date
-                if (rootIds.length === 0) {
-                    const sortedByBirth = Object.entries(people).sort((a, b) => {
-                        const birthA = a[1].events?.find(e => e.type === '$_BIRTH')?.dateStart || '9999';
-                        const birthB = b[1].events?.find(e => e.type === '$_BIRTH')?.dateStart || '9999';
-                        return birthA.localeCompare(birthB);
-                    });
-                    if (sortedByBirth.length > 0) {
-                        rootIds.push(sortedByBirth[0][0]);
-                    }
-                }
-                
-                // BFS to assign generations
-                const queue = rootIds.map(id => ({ id, gen: 0 }));
-                
-                while (queue.length > 0) {
-                    const { id, gen } = queue.shift();
-                    if (visited.has(id)) continue;
-                    visited.add(id);
-                    personGenerations[id] = gen;
-                    
-                    // Find children
-                    marriages.forEach(marriage => {
-                        if (marriage.length >= 2 && (marriage[0] === id || marriage[1] === id)) {
-                            // Add spouse at same generation
-                            const spouseId = marriage[0] === id ? marriage[1] : marriage[0];
-                            if (!visited.has(spouseId)) {
-                                queue.push({ id: spouseId, gen });
-                            }
-                            // Add children at next generation
-                            marriage.slice(2).forEach(childId => {
-                                if (!visited.has(childId)) {
-                                    queue.push({ id: childId, gen: gen + 1 });
-                                }
-                            });
-                        }
-                    });
-                }
-                
-                // Add any unvisited people
-                Object.keys(people).forEach(id => {
-                    if (!visited.has(id)) {
-                        personGenerations[id] = 0;
-                    }
-                });
-                
-                // Group by generation
-                const gens = {};
-                Object.entries(personGenerations).forEach(([id, gen]) => {
-                    if (!gens[gen]) gens[gen] = [];
-                    gens[gen].push(id);
-                });
-                
-                return gens;
-            }, [treeData]);
-
-            const generationLabels = ['Grandparents', 'Parents', 'Children', 'Grandchildren', 'Great-grandchildren'];
-
-            return (
-                <div className="tree-strict">
-                    {Object.entries(generations).sort((a, b) => Number(a[0]) - Number(b[0])).map(([gen, peopleIds]) => (
-                        <div key={gen} className="generation-row">
-                            <span className="generation-label">
-                                {generationLabels[Number(gen)] || `Gen ${Number(gen) + 1}`}
-                            </span>
-                            {peopleIds.map(personId => (
-                                <PersonCard 
+                            {Object.entries(positions).map(([personId, pos]) => (
+                                <PersonCard
                                     key={personId}
                                     person={treeData.people[personId]}
                                     personId={personId}
                                     isSelected={selectedPerson === personId}
                                     onClick={onSelectPerson}
-                                    isEditMode={isEditMode}
+                                    isEditMode={false}
+                                    style={{ position: 'absolute', left: pos.x, top: pos.y, width: `${NODE_WIDTH}px` }}
                                 />
                             ))}
                         </div>
-                    ))}
+                    </div>
+
+                    <div className="zoom-controls">
+                        <button className="zoom-btn" onClick={() => updateZoom(1.1)}>
+                            {Icons.zoomIn}
+                        </button>
+                        <div className="zoom-divider" />
+                        <button className="zoom-btn" onClick={resetView}>
+                            {Icons.reset}
+                        </button>
+                        <div className="zoom-divider" />
+                        <button className="zoom-btn" onClick={() => updateZoom(0.9)}>
+                            {Icons.zoomOut}
+                        </button>
+                    </div>
                 </div>
             );
         };
+
+        // Fluid Tree View - uses free-form layout with relationship overlay
+        const FluidTreeView = ({ treeData, selectedPerson, onSelectPerson }) => (
+            <TreeViewport
+                treeData={treeData}
+                viewMode="fluid"
+                selectedPerson={selectedPerson}
+                onSelectPerson={onSelectPerson}
+            />
+        );
+
+        // Strict Tree View - hierarchical layout with connectors
+        const StrictTreeView = ({ treeData, selectedPerson, onSelectPerson }) => (
+            <TreeViewport
+                treeData={treeData}
+                viewMode="strict"
+                selectedPerson={selectedPerson}
+                onSelectPerson={onSelectPerson}
+            />
+        );
 
         // Main App Component
         const FamilyTreeApp = () => {
@@ -768,7 +1108,6 @@
             const [searchQuery, setSearchQuery] = useState('');
             const [showAddPersonModal, setShowAddPersonModal] = useState(false);
             const [showAddMarriageModal, setShowAddMarriageModal] = useState(false);
-            const [zoom, setZoom] = useState(1);
             
             const fileInputRef = useRef(null);
 
@@ -1119,57 +1458,36 @@
 
                         {/* Tree Canvas */}
                         <main className="tree-canvas">
-                            <div className="tree-viewport" style={{transform: `scale(${zoom})`, transformOrigin: 'top center'}}>
-                                <div className="tree-content">
-                                    {Object.keys(treeData.people).length === 0 ? (
-                                        <div className="empty-state">
-                                            <div className="empty-icon">{Icons.tree}</div>
-                                            <h3 className="empty-title">Start Your Family Tree</h3>
-                                            <p className="empty-text">
-                                                Add your first family member to begin building your tree.
-                                            </p>
-                                            {isEditMode && (
-                                                <button 
-                                                    className="btn btn-primary" 
-                                                    style={{marginTop: '24px'}}
-                                                    onClick={() => setShowAddPersonModal(true)}
-                                                >
-                                                    {Icons.plus} Add First Person
-                                                </button>
-                                            )}
-                                        </div>
-                                    ) : viewMode === 'fluid' ? (
-                                        <FluidTreeView 
-                                            treeData={treeData}
-                                            selectedPerson={selectedPerson}
-                                            onSelectPerson={setSelectedPerson}
-                                            isEditMode={isEditMode}
-                                        />
-                                    ) : (
-                                        <StrictTreeView 
-                                            treeData={treeData}
-                                            selectedPerson={selectedPerson}
-                                            onSelectPerson={setSelectedPerson}
-                                            isEditMode={isEditMode}
-                                        />
+                            {Object.keys(treeData.people).length === 0 ? (
+                                <div className="empty-state">
+                                    <div className="empty-icon">{Icons.tree}</div>
+                                    <h3 className="empty-title">Start Your Family Tree</h3>
+                                    <p className="empty-text">
+                                        Add your first family member to begin building your tree.
+                                    </p>
+                                    {isEditMode && (
+                                        <button
+                                            className="btn btn-primary"
+                                            style={{marginTop: '24px'}}
+                                            onClick={() => setShowAddPersonModal(true)}
+                                        >
+                                            {Icons.plus} Add First Person
+                                        </button>
                                     )}
                                 </div>
-                            </div>
-                            
-                            {/* Zoom Controls */}
-                            <div className="zoom-controls">
-                                <button className="zoom-btn" onClick={() => setZoom(z => Math.min(z + 0.1, 2))}>
-                                    {Icons.zoomIn}
-                                </button>
-                                <div className="zoom-divider" />
-                                <button className="zoom-btn" onClick={() => setZoom(1)}>
-                                    {Icons.reset}
-                                </button>
-                                <div className="zoom-divider" />
-                                <button className="zoom-btn" onClick={() => setZoom(z => Math.max(z - 0.1, 0.5))}>
-                                    {Icons.zoomOut}
-                                </button>
-                            </div>
+                            ) : viewMode === 'fluid' ? (
+                                <FluidTreeView
+                                    treeData={treeData}
+                                    selectedPerson={selectedPerson}
+                                    onSelectPerson={setSelectedPerson}
+                                />
+                            ) : (
+                                <StrictTreeView
+                                    treeData={treeData}
+                                    selectedPerson={selectedPerson}
+                                    onSelectPerson={setSelectedPerson}
+                                />
+                            )}
                         </main>
 
                         {/* Detail Panel */}
