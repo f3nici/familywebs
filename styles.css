@@ -470,7 +470,7 @@
         .tree-node {
             background: var(--bg-card);
             border-radius: var(--radius-lg);
-            padding: 18px 20px 20px;
+            padding: 16px 18px;
             box-shadow: var(--shadow-soft);
             border: 2px solid transparent;
             cursor: pointer;

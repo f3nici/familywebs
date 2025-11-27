@@ -1,0 +1,39 @@
+name: Deploy testing branch to GitHub Pages preview
+
+on:
+  push:
+    branches: ["testing"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages-testing"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages-testing
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload testing artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Deploy testing preview
+        id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          preview: true
