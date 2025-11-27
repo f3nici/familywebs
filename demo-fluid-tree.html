@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fluid Family Tree Demo - React Flow</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Nunito+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- React -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+    <!-- React Flow -->
+    <script src="https://cdn.jsdelivr.net/npm/reactflow@11.10.1/dist/umd/index.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reactflow@11.10.1/dist/style.css">
+
+    <!-- Babel Standalone -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Base Styles -->
+    <link rel="stylesheet" href="react-flow-styles.css">
+
+    <style>
+        :root {
+            --bg-primary: #faf8f5;
+            --bg-secondary: #f0ebe3;
+            --bg-card: #ffffff;
+            --text-primary: #2c2416;
+            --text-secondary: #6b5d4d;
+            --text-muted: #9a8b78;
+            --accent-warm: #c4956a;
+            --accent-warm-light: #e8d4c0;
+            --accent-sage: #8fa388;
+            --accent-sage-light: #d4e0d1;
+            --accent-dusty: #b08d9b;
+            --accent-dusty-light: #e5d5dc;
+            --border-subtle: #e5ddd2;
+            --shadow-soft: 0 4px 20px rgba(44, 36, 22, 0.08);
+            --shadow-hover: 0 8px 32px rgba(44, 36, 22, 0.12);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 20px;
+            --font-display: 'Cormorant Garamond', Georgia, serif;
+            --font-body: 'Nunito Sans', -apple-system, sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+        }
+
+        .demo-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .demo-header {
+            background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 20px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .demo-title {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+        }
+
+        .demo-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 4px;
+        }
+
+        .demo-canvas {
+            flex: 1;
+            position: relative;
+            background:
+                radial-gradient(circle at 20% 80%, var(--accent-sage-light) 0%, transparent 40%),
+                radial-gradient(circle at 80% 20%, var(--accent-warm-light) 0%, transparent 40%),
+                var(--bg-primary);
+        }
+
+        .avatar-male {
+            background: linear-gradient(135deg, var(--accent-sage) 0%, #6b8a65 100%);
+        }
+
+        .avatar-female {
+            background: linear-gradient(135deg, var(--accent-dusty) 0%, #956e7e 100%);
+        }
+
+        .avatar-other {
+            background: linear-gradient(135deg, var(--accent-warm) 0%, #a67d4f 100%);
+        }
+
+        .info-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 20px 24px;
+            box-shadow: var(--shadow-soft);
+            border: 1px solid var(--border-subtle);
+            max-width: 300px;
+        }
+
+        .info-panel h3 {
+            font-family: var(--font-display);
+            font-size: 1.2rem;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .info-panel ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .info-panel li {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            padding: 6px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .info-panel li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: var(--accent-sage);
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo, useCallback } = React;
+        const { ReactFlow, Background, Handle, Position, useNodesState, useEdgesState } = window.ReactFlow;
+
+        // Sample Family Tree Data
+        const sampleTreeData = {
+            people: {
+                "1": {
+                    name: "William",
+                    surname: "Anderson",
+                    gender: "MALE",
+                    events: [{ type: "$_BIRTH", dateStart: "1945-03-15" }]
+                },
+                "2": {
+                    name: "Margaret",
+                    surname: "Anderson",
+                    gender: "FEMALE",
+                    events: [{ type: "$_BIRTH", dateStart: "1947-07-22" }]
+                },
+                "3": {
+                    name: "Robert",
+                    surname: "Anderson",
+                    gender: "MALE",
+                    events: [{ type: "$_BIRTH", dateStart: "1970-05-10" }]
+                },
+                "4": {
+                    name: "Jennifer",
+                    surname: "Smith",
+                    gender: "FEMALE",
+                    events: [{ type: "$_BIRTH", dateStart: "1972-11-18" }]
+                },
+                "5": {
+                    name: "Sarah",
+                    surname: "Anderson",
+                    gender: "FEMALE",
+                    events: [{ type: "$_BIRTH", dateStart: "1995-02-14" }]
+                },
+                "6": {
+                    name: "Michael",
+                    surname: "Anderson",
+                    gender: "MALE",
+                    events: [{ type: "$_BIRTH", dateStart: "1998-09-07" }]
+                },
+                "7": {
+                    name: "David",
+                    surname: "Thompson",
+                    gender: "MALE",
+                    events: [{ type: "$_BIRTH", dateStart: "1943-12-03" }]
+                },
+                "8": {
+                    name: "Elizabeth",
+                    surname: "Thompson",
+                    gender: "FEMALE",
+                    events: [{ type: "$_BIRTH", dateStart: "1946-08-25" }]
+                },
+                "9": {
+                    name: "Lisa",
+                    surname: "Thompson",
+                    gender: "FEMALE",
+                    events: [{ type: "$_BIRTH", dateStart: "1968-04-12" }]
+                }
+            },
+            mariages: [
+                ["1", "2", "3"],      // William + Margaret had Robert
+                ["3", "4", "5", "6"], // Robert + Jennifer had Sarah and Michael
+                ["7", "8", "9"]       // David + Elizabeth had Lisa
+            ]
+        };
+
+        // Person Node Component
+        const PersonNode = ({ data, selected }) => {
+            const getInitials = (name) => {
+                if (!name) return '?';
+                return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+            };
+
+            const formatDate = (dateStr) => {
+                if (!dateStr) return '';
+                const date = new Date(dateStr);
+                return date.toLocaleDateString('en-AU', { year: 'numeric', month: 'short' });
+            };
+
+            const birthEvent = data.person?.events?.find(e => e.type === '$_BIRTH');
+            const avatarClass = data.person?.gender === 'MALE' ? 'avatar-male' :
+                               data.person?.gender === 'FEMALE' ? 'avatar-female' : 'avatar-other';
+
+            return (
+                <div className={`react-flow-person-node ${selected ? 'selected' : ''}`}>
+                    <Handle type="target" position={Position.Top} id="target-top" className="react-flow-handle handle-top" />
+                    <Handle type="source" position={Position.Top} id="source-top" className="react-flow-handle handle-top" />
+
+                    <div className={`node-avatar-small ${avatarClass}`}>
+                        {getInitials(data.person?.name)}
+                    </div>
+                    <div className="node-name-small">{data.person?.name}</div>
+                    <div className="node-surname-small">{data.person?.surname}</div>
+                    {birthEvent?.dateStart && (
+                        <div className="node-dates-small">
+                            b. {formatDate(birthEvent.dateStart)}
+                        </div>
+                    )}
+
+                    <Handle type="target" position={Position.Bottom} id="target-bottom" className="react-flow-handle handle-bottom" />
+                    <Handle type="source" position={Position.Bottom} id="source-bottom" className="react-flow-handle handle-bottom" />
+                </div>
+            );
+        };
+
+        // Marriage Node Component
+        const MarriageNode = ({ selected }) => {
+            return (
+                <div className={`react-flow-marriage-node ${selected ? 'selected' : ''}`}>
+                    <Handle type="target" position={Position.Top} id="target-top" className="react-flow-handle handle-top" />
+                    <Handle type="source" position={Position.Top} id="source-top" className="react-flow-handle handle-top" />
+                    <div className="marriage-circle"></div>
+                    <Handle type="target" position={Position.Bottom} id="target-bottom" className="react-flow-handle handle-bottom" />
+                    <Handle type="source" position={Position.Bottom} id="source-bottom" className="react-flow-handle handle-bottom" />
+                </div>
+            );
+        };
+
+        // Custom Edge Component
+        const FluidEdge = ({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style = {}, data = {} }) => {
+            const verticalDistance = Math.abs(targetY - sourceY);
+            const controlOffset = verticalDistance * 0.5;
+
+            let path;
+            if (sourcePosition === Position.Bottom && targetPosition === Position.Top) {
+                const cp1x = sourceX;
+                const cp1y = sourceY + controlOffset;
+                const cp2x = targetX;
+                const cp2y = targetY - controlOffset;
+                path = `M ${sourceX},${sourceY} C ${cp1x},${cp1y} ${cp2x},${cp2y} ${targetX},${targetY}`;
+            } else {
+                const cp1x = sourceX;
+                const cp1y = sourceY - controlOffset;
+                const cp2x = targetX;
+                const cp2y = targetY + controlOffset;
+                path = `M ${sourceX},${sourceY} C ${cp1x},${cp1y} ${cp2x},${cp2y} ${targetX},${targetY}`;
+            }
+
+            const isMarriageEdge = data.type === 'marriage';
+            const edgeClass = isMarriageEdge ? 'marriage-edge' : 'child-edge';
+
+            return (
+                <path
+                    id={id}
+                    className={`react-flow-edge-path ${edgeClass}`}
+                    d={path}
+                    style={style}
+                />
+            );
+        };
+
+        // Layout Algorithm
+        const calculateLayout = (treeData) => {
+            const nodes = [];
+            const edges = [];
+            const nodeWidth = 180;
+            const nodeHeight = 140;
+            const horizontalSpacing = 120;
+            const verticalSpacing = 220;
+
+            const generations = {};
+            const generationAssignment = {};
+            const childIds = new Set();
+            const parentIds = new Set();
+
+            treeData.mariages.forEach(marriage => {
+                if (marriage.length >= 2) {
+                    parentIds.add(marriage[0]);
+                    parentIds.add(marriage[1]);
+                    marriage.slice(2).forEach(childId => childIds.add(childId));
+                }
+            });
+
+            const rootIds = [...parentIds].filter(id => !childIds.has(id));
+            const queue = rootIds.map(id => ({ id, gen: 0 }));
+            const visited = new Set();
+
+            while (queue.length > 0) {
+                const { id, gen } = queue.shift();
+                if (visited.has(id)) continue;
+                visited.add(id);
+                generationAssignment[id] = gen;
+                if (!generations[gen]) generations[gen] = [];
+                generations[gen].push(id);
+
+                treeData.mariages.forEach(marriage => {
+                    if (marriage.length >= 2 && (marriage[0] === id || marriage[1] === id)) {
+                        const spouseId = marriage[0] === id ? marriage[1] : marriage[0];
+                        if (!visited.has(spouseId)) {
+                            queue.push({ id: spouseId, gen });
+                        }
+                        marriage.slice(2).forEach(childId => {
+                            if (!visited.has(childId)) {
+                                queue.push({ id: childId, gen: gen + 1 });
+                            }
+                        });
+                    }
+                });
+            }
+
+            Object.keys(treeData.people).forEach(id => {
+                if (!visited.has(id)) {
+                    generationAssignment[id] = 0;
+                    if (!generations[0]) generations[0] = [];
+                    generations[0].push(id);
+                }
+            });
+
+            let currentY = 80;
+            const generationKeys = Object.keys(generations).sort((a, b) => Number(a) - Number(b));
+
+            generationKeys.forEach(genKey => {
+                const peopleInGen = generations[genKey];
+                const totalWidth = (peopleInGen.length - 1) * (nodeWidth + horizontalSpacing);
+                let currentX = -totalWidth / 2 + 400;
+
+                peopleInGen.forEach(personId => {
+                    nodes.push({
+                        id: personId,
+                        type: 'personNode',
+                        position: { x: currentX, y: currentY },
+                        data: { person: treeData.people[personId], personId },
+                    });
+                    currentX += nodeWidth + horizontalSpacing;
+                });
+
+                currentY += verticalSpacing;
+            });
+
+            const processedMarriages = new Set();
+
+            treeData.mariages.forEach(marriage => {
+                if (marriage.length < 2) return;
+                const [parent1Id, parent2Id, ...childrenIds] = marriage;
+                const marriageNodeId = `marriage-${parent1Id}-${parent2Id}`;
+
+                if (processedMarriages.has(marriageNodeId)) return;
+                processedMarriages.add(marriageNodeId);
+
+                const parent1Node = nodes.find(n => n.id === parent1Id);
+                const parent2Node = nodes.find(n => n.id === parent2Id);
+
+                if (!parent1Node || !parent2Node) return;
+
+                const marriageX = (parent1Node.position.x + parent2Node.position.x) / 2 + nodeWidth / 2;
+                const marriageY = Math.max(parent1Node.position.y, parent2Node.position.y) + nodeHeight + 40;
+
+                nodes.push({
+                    id: marriageNodeId,
+                    type: 'marriageNode',
+                    position: { x: marriageX - 10, y: marriageY },
+                    data: {},
+                });
+
+                edges.push({
+                    id: `edge-${parent1Id}-to-${marriageNodeId}`,
+                    source: parent1Id,
+                    sourceHandle: 'source-bottom',
+                    target: marriageNodeId,
+                    targetHandle: 'target-top',
+                    type: 'fluidEdge',
+                    data: { type: 'marriage' },
+                });
+
+                edges.push({
+                    id: `edge-${parent2Id}-to-${marriageNodeId}`,
+                    source: parent2Id,
+                    sourceHandle: 'source-bottom',
+                    target: marriageNodeId,
+                    targetHandle: 'target-top',
+                    type: 'fluidEdge',
+                    data: { type: 'marriage' },
+                });
+
+                childrenIds.forEach(childId => {
+                    edges.push({
+                        id: `edge-${marriageNodeId}-to-${childId}`,
+                        source: marriageNodeId,
+                        sourceHandle: 'source-bottom',
+                        target: childId,
+                        targetHandle: 'target-top',
+                        type: 'fluidEdge',
+                        data: { type: 'child' },
+                    });
+                });
+            });
+
+            return { nodes, edges };
+        };
+
+        // Main Demo App
+        const DemoApp = () => {
+            const { nodes: initialNodes, edges: initialEdges } = useMemo(
+                () => calculateLayout(sampleTreeData),
+                []
+            );
+
+            const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+            const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+            const nodeTypes = useMemo(() => ({
+                personNode: PersonNode,
+                marriageNode: MarriageNode,
+            }), []);
+
+            const edgeTypes = useMemo(() => ({
+                fluidEdge: FluidEdge,
+            }), []);
+
+            return (
+                <div className="demo-container">
+                    <div className="demo-header">
+                        <div>
+                            <div className="demo-title">🌳 Fluid Family Tree Demo</div>
+                            <div className="demo-subtitle">
+                                Drag nodes to reposition • Scroll to zoom • Click nodes to select
+                            </div>
+                        </div>
+                    </div>
+                    <div className="demo-canvas">
+                        <ReactFlow
+                            nodes={nodes}
+                            edges={edges}
+                            onNodesChange={onNodesChange}
+                            onEdgesChange={onEdgesChange}
+                            nodeTypes={nodeTypes}
+                            edgeTypes={edgeTypes}
+                            fitView
+                            minZoom={0.2}
+                            maxZoom={2}
+                            defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
+                            nodesDraggable={true}
+                            nodesConnectable={false}
+                        >
+                            <Background color="#e5ddd2" gap={20} size={1} />
+                        </ReactFlow>
+
+                        <div className="info-panel">
+                            <h3>Features</h3>
+                            <ul>
+                                <li>Smooth curved relationship lines</li>
+                                <li>Marriage nodes as connectors</li>
+                                <li>Animated dashed edges</li>
+                                <li>Gender-based node colors</li>
+                                <li>Draggable & responsive</li>
+                                <li>Auto-routing when moved</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Render
+        ReactDOM.render(<DemoApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>
