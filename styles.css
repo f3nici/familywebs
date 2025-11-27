@@ -436,17 +436,49 @@
         .tree-viewport {
             width: 100%;
             height: 100%;
-            overflow: auto;
+            overflow: hidden;
             position: relative;
+            touch-action: pinch-zoom;
+            background:
+                radial-gradient(circle at 20% 80%, var(--accent-sage-light) 0%, transparent 40%),
+                radial-gradient(circle at 80% 20%, var(--accent-warm-light) 0%, transparent 40%),
+                var(--bg-primary);
+        }
+
+        .tree-stage {
+            width: 100%;
+            height: 100%;
+            transform-origin: 0 0;
+            cursor: grab;
+        }
+
+        .tree-stage:active {
+            cursor: grabbing;
         }
 
         .tree-content {
-            min-width: 100%;
-            min-height: 100%;
-            padding: 60px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            position: relative;
+        }
+
+        .tree-overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        .edge {
+            stroke-width: 3px;
+            fill: none;
+        }
+
+        .marriage-edge {
+            stroke: var(--accent-warm);
+            opacity: 0.75;
+        }
+
+        .parent-edge {
+            stroke: var(--accent-sage);
+            opacity: 0.65;
         }
 
         /* Tree Nodes */
