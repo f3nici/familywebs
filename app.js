@@ -1,4 +1,5 @@
         const { useState, useEffect, useRef, useCallback, useMemo } = React;
+        window.__FAMILY_TREE_APP_LOADED__ = true;
 
         // Icons
         const Icons = {
@@ -1204,3 +1205,4 @@
 
         // Render the app
         ReactDOM.render(<FamilyTreeApp />, document.getElementById('root'));
+        window.__FAMILY_TREE_APP_READY__?.();
