@@ -628,7 +628,9 @@
             );
         };
 
-        // Fluid Tree View - Shows all people as cards with visual relationship indicators
+        // OLD Fluid Tree View - Simple grid layout (replaced with FluidTreeWithReactFlow)
+        // Kept here for reference, but no longer used in the main app
+        /*
         const FluidTreeView = ({ treeData, selectedPerson, onSelectPerson, isEditMode }) => {
             const sortedPeople = useMemo(() => {
                 return Object.entries(treeData.people).sort((a, b) => {
@@ -641,7 +643,7 @@
             return (
                 <div className="fluid-tree">
                     {sortedPeople.map(([personId, person]) => (
-                        <PersonCard 
+                        <PersonCard
                             key={personId}
                             person={person}
                             personId={personId}
@@ -654,6 +656,10 @@
                 </div>
             );
         };
+        */
+
+        // NOTE: Now using FluidTreeWithReactFlow component from FluidTreeWithReactFlow.js
+        // which provides relationship lines, marriage nodes, and auto-organize functionality
 
         // Strict Tree View - Hierarchical generations view
         const StrictTreeView = ({ treeData, selectedPerson, onSelectPerson, isEditMode }) => {
@@ -1139,11 +1145,10 @@
                                             )}
                                         </div>
                                     ) : viewMode === 'fluid' ? (
-                                        <FluidTreeView 
+                                        <FluidTreeWithReactFlow
                                             treeData={treeData}
                                             selectedPerson={selectedPerson}
                                             onSelectPerson={setSelectedPerson}
-                                            isEditMode={isEditMode}
                                         />
                                     ) : (
                                         <StrictTreeView 

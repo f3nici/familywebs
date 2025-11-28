@@ -10,7 +10,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+
+    <!-- React Flow for fluid relationship lines -->
+    <script src="https://cdn.jsdelivr.net/npm/reactflow@11.10.1/dist/umd/index.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reactflow@11.10.1/dist/style.css">
+
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="react-flow-styles.css">
 </head>
 <body>
     <div id="root" class="app-placeholder">
@@ -57,6 +63,15 @@
         })();
     </script>
 
+    <!-- Fluid Tree React Flow Component -->
+    <script
+        type="text/babel"
+        data-presets="env,react"
+        data-plugins="proposal-class-properties,proposal-object-rest-spread"
+        src="FluidTreeWithReactFlow.js"
+    ></script>
+
+    <!-- Main App -->
     <script
         type="text/babel"
         data-presets="env,react"
