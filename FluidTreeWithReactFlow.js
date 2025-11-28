@@ -385,9 +385,24 @@ const calculateFluidLayout = (treeData) => {
  * @returns {Promise<Array>} Updated nodes with new positions
  */
 const autoOrganiseWithForce = async (nodes, edges) => {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
+        console.log('🔧 autoOrganiseWithForce called with:', {
+            nodesCount: nodes?.length,
+            edgesCount: edges?.length,
+            d3Available: typeof d3 !== 'undefined',
+            d3Functions: typeof d3 !== 'undefined' ? Object.keys(d3) : 'N/A'
+        });
+
+        // Check if d3-force is available
+        if (typeof d3 === 'undefined') {
+            console.error('❌ d3-force library not loaded!');
+            reject(new Error('d3-force library not available'));
+            return;
+        }
+
         // Don't modify if there are no nodes
         if (!nodes || nodes.length === 0) {
+            console.log('⚠️ No nodes to organize');
             resolve(nodes);
             return;
         }
@@ -416,6 +431,8 @@ const autoOrganiseWithForce = async (nodes, edges) => {
             type: edge.data?.type || 'unknown'
         }));
 
+        console.log('🔧 Creating d3 simulation with', simNodes.length, 'nodes and', simLinks.length, 'links');
+
         // Configure d3-force simulation
         const simulation = d3.forceSimulation(simNodes)
             // Attraction between connected nodes
@@ -423,20 +440,20 @@ const autoOrganiseWithForce = async (nodes, edges) => {
                 .id(d => d.id)
                 .distance(d => {
                     // Marriage edges: parents close to marriage node
-                    if (d.type === 'marriage') return 100;
+                    if (d.type === 'marriage') return 120;
                     // Child edges: marriage node to children
-                    if (d.type === 'child') return 150;
-                    return 120;
+                    if (d.type === 'child') return 200;
+                    return 150;
                 })
-                .strength(0.5)
+                .strength(0.7)
             )
             // Repulsion between all nodes to prevent overlap
             .force('charge', d3.forceManyBody()
                 .strength(d => {
                     // Marriage nodes have less repulsion
-                    if (d.type === 'marriageNode') return -300;
+                    if (d.type === 'marriageNode') return -500;
                     // Person nodes have more repulsion
-                    return -800;
+                    return -1200;
                 })
             )
             // Pull toward center to keep layout compact
@@ -445,16 +462,16 @@ const autoOrganiseWithForce = async (nodes, edges) => {
             .force('collision', d3.forceCollide()
                 .radius(d => {
                     // Person nodes need more space
-                    if (d.type === 'personNode') return 120;
+                    if (d.type === 'personNode') return 130;
                     // Marriage nodes are smaller
-                    return 30;
+                    return 40;
                 })
-                .strength(0.8)
+                .strength(0.9)
             )
-            // Slight vertical separation to maintain generational feel
-            .force('y', d3.forceY(d => d.y).strength(0.1))
             .alphaDecay(0.02) // Slower cooling for better convergence
             .velocityDecay(0.4); // More friction for stability
+
+        console.log('✅ Simulation created, starting ticks...');
 
         // Run simulation asynchronously
         const ticksPerFrame = 10;
@@ -470,6 +487,11 @@ const autoOrganiseWithForce = async (nodes, edges) => {
             // Check if simulation has cooled down or reached max iterations
             if (simulation.alpha() < 0.01 || tickCount >= maxTicks) {
                 simulation.stop();
+                console.log('✅ Simulation complete:', {
+                    tickCount,
+                    alpha: simulation.alpha(),
+                    reason: simulation.alpha() < 0.01 ? 'converged' : 'max iterations'
+                });
 
                 // Update node positions from simulation
                 nodesCopy.forEach(node => {
@@ -483,6 +505,7 @@ const autoOrganiseWithForce = async (nodes, edges) => {
                     }
                 });
 
+                console.log('✅ Node positions updated, resolving with', nodesCopy.length, 'nodes');
                 resolve(nodesCopy);
             } else {
                 // Continue simulation in next frame
@@ -503,13 +526,24 @@ const FluidTreeControls = ({ nodes, edges, setNodes }) => {
     const [isOrganizing, setIsOrganizing] = React.useState(false);
 
     const handleAutoOrganize = async () => {
-        if (isOrganizing || !nodes || nodes.length === 0) return;
+        console.log('🎯 Auto-Organize button clicked!', {
+            isOrganizing,
+            nodesCount: nodes?.length,
+            edgesCount: edges?.length
+        });
+
+        if (isOrganizing || !nodes || nodes.length === 0) {
+            console.log('⚠️ Aborting: isOrganizing=' + isOrganizing + ', nodes=' + nodes?.length);
+            return;
+        }
 
         setIsOrganizing(true);
+        console.log('✅ Starting organization...');
 
         try {
             // Run force-directed layout
             const organizedNodes = await autoOrganiseWithForce(nodes, edges);
+            console.log('✅ Organization complete, updating nodes...');
 
             // Update nodes with new positions
             setNodes(organizedNodes);
@@ -671,3 +705,5 @@ window.FluidTreeWithReactFlow = FluidTreeWithReactFlow;
 // Log successful load
 console.log('✅ FluidTreeWithReactFlow component loaded and exported to window.FluidTreeWithReactFlow');
 console.log('React Flow available:', !!window.ReactFlow);
+console.log('d3-force available:', typeof d3 !== 'undefined');
+console.log('d3-force functions:', typeof d3 !== 'undefined' ? Object.keys(d3) : 'N/A');
