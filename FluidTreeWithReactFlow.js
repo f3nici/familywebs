@@ -376,191 +376,17 @@ const calculateFluidLayout = (treeData) => {
 };
 
 // ==========================================
-// FORCE-DIRECTED AUTO-ORGANIZE FUNCTION
-// ==========================================
-/**
- * Repositions existing nodes using d3-force for a spider-web layout
- * @param {Array} nodes - Current React Flow nodes
- * @param {Array} edges - Current React Flow edges
- * @returns {Promise<Array>} Updated nodes with new positions
- */
-const autoOrganiseWithForce = async (nodes, edges) => {
-    return new Promise((resolve, reject) => {
-        console.log('🔧 autoOrganiseWithForce called with:', {
-            nodesCount: nodes?.length,
-            edgesCount: edges?.length,
-            d3Available: typeof d3 !== 'undefined',
-            d3Functions: typeof d3 !== 'undefined' ? Object.keys(d3) : 'N/A'
-        });
-
-        // Check if d3-force is available
-        if (typeof d3 === 'undefined') {
-            console.error('❌ d3-force library not loaded!');
-            reject(new Error('d3-force library not available'));
-            return;
-        }
-
-        // Don't modify if there are no nodes
-        if (!nodes || nodes.length === 0) {
-            console.log('⚠️ No nodes to organize');
-            resolve(nodes);
-            return;
-        }
-
-        // Create a copy of nodes to avoid mutation
-        const nodesCopy = nodes.map(n => ({ ...n }));
-
-        // Separate person nodes and marriage nodes for different treatment
-        const personNodes = nodesCopy.filter(n => n.type === 'personNode');
-        const marriageNodes = nodesCopy.filter(n => n.type === 'marriageNode');
-
-        // Create simulation nodes with initial positions
-        const simNodes = nodesCopy.map(node => ({
-            id: node.id,
-            x: node.position.x + 90, // Center of node (nodeWidth/2)
-            y: node.position.y + 70, // Center of node (nodeHeight/2)
-            fx: null, // Allow movement
-            fy: null,
-            type: node.type
-        }));
-
-        // Create simulation links from edges
-        const simLinks = edges.map(edge => ({
-            source: edge.source,
-            target: edge.target,
-            type: edge.data?.type || 'unknown'
-        }));
-
-        console.log('🔧 Creating d3 simulation with', simNodes.length, 'nodes and', simLinks.length, 'links');
-
-        // Configure d3-force simulation
-        const simulation = d3.forceSimulation(simNodes)
-            // Attraction between connected nodes
-            .force('link', d3.forceLink(simLinks)
-                .id(d => d.id)
-                .distance(d => {
-                    // Marriage edges: parents close to marriage node
-                    if (d.type === 'marriage') return 120;
-                    // Child edges: marriage node to children
-                    if (d.type === 'child') return 200;
-                    return 150;
-                })
-                .strength(0.7)
-            )
-            // Repulsion between all nodes to prevent overlap
-            .force('charge', d3.forceManyBody()
-                .strength(d => {
-                    // Marriage nodes have less repulsion
-                    if (d.type === 'marriageNode') return -500;
-                    // Person nodes have more repulsion
-                    return -1200;
-                })
-            )
-            // Pull toward center to keep layout compact
-            .force('center', d3.forceCenter(500, 400))
-            // Prevent node overlap with collision detection
-            .force('collision', d3.forceCollide()
-                .radius(d => {
-                    // Person nodes need more space
-                    if (d.type === 'personNode') return 130;
-                    // Marriage nodes are smaller
-                    return 40;
-                })
-                .strength(0.9)
-            )
-            .alphaDecay(0.02) // Slower cooling for better convergence
-            .velocityDecay(0.4); // More friction for stability
-
-        console.log('✅ Simulation created, starting ticks...');
-
-        // Run simulation asynchronously
-        const ticksPerFrame = 10;
-        let tickCount = 0;
-        const maxTicks = 300;
-
-        const tick = () => {
-            for (let i = 0; i < ticksPerFrame; i++) {
-                simulation.tick();
-                tickCount++;
-            }
-
-            // Check if simulation has cooled down or reached max iterations
-            if (simulation.alpha() < 0.01 || tickCount >= maxTicks) {
-                simulation.stop();
-                console.log('✅ Simulation complete:', {
-                    tickCount,
-                    alpha: simulation.alpha(),
-                    reason: simulation.alpha() < 0.01 ? 'converged' : 'max iterations'
-                });
-
-                // Update node positions from simulation
-                nodesCopy.forEach(node => {
-                    const simNode = simNodes.find(n => n.id === node.id);
-                    if (simNode) {
-                        // Convert back from center position to top-left corner
-                        node.position = {
-                            x: simNode.x - 90,
-                            y: simNode.y - 70
-                        };
-                    }
-                });
-
-                console.log('✅ Node positions updated, resolving with', nodesCopy.length, 'nodes');
-                resolve(nodesCopy);
-            } else {
-                // Continue simulation in next frame
-                requestAnimationFrame(tick);
-            }
-        };
-
-        // Start the simulation
-        requestAnimationFrame(tick);
-    });
-};
-
-// ==========================================
 // CONTROLS COMPONENT - Inside ReactFlow Context
 // ==========================================
-const FluidTreeControls = ({ nodes, edges, setNodes }) => {
+const FluidTreeControls = ({ onResetLayout }) => {
     const { fitView, zoomIn, zoomOut } = useReactFlow();
-    const [isOrganizing, setIsOrganizing] = React.useState(false);
 
-    const handleAutoOrganize = async () => {
-        console.log('🎯 Auto-Organize button clicked!', {
-            isOrganizing,
-            nodesCount: nodes?.length,
-            edgesCount: edges?.length
+    const handleAutoOrganize = () => {
+        fitView({
+            padding: 0.2,
+            duration: 800,
+            maxZoom: 1
         });
-
-        if (isOrganizing || !nodes || nodes.length === 0) {
-            console.log('⚠️ Aborting: isOrganizing=' + isOrganizing + ', nodes=' + nodes?.length);
-            return;
-        }
-
-        setIsOrganizing(true);
-        console.log('✅ Starting organization...');
-
-        try {
-            // Run force-directed layout
-            const organizedNodes = await autoOrganiseWithForce(nodes, edges);
-            console.log('✅ Organization complete, updating nodes...');
-
-            // Update nodes with new positions
-            setNodes(organizedNodes);
-
-            // Fit view after organizing
-            setTimeout(() => {
-                fitView({
-                    padding: 0.2,
-                    duration: 800,
-                    maxZoom: 1.5
-                });
-            }, 100);
-        } catch (error) {
-            console.error('Error during auto-organize:', error);
-        } finally {
-            setIsOrganizing(false);
-        }
     };
 
     return (
@@ -568,11 +394,18 @@ const FluidTreeControls = ({ nodes, edges, setNodes }) => {
             <button
                 className="organize-btn"
                 onClick={handleAutoOrganize}
-                disabled={isOrganizing}
-                title="Auto-organize nodes using force-directed layout"
+                title="Auto-organize and fit all nodes into view"
             >
-                <span className="organize-icon">{isOrganizing ? '⏳' : '⚡'}</span>
-                <span className="organize-text">{isOrganizing ? 'Organizing...' : 'Auto-Organize'}</span>
+                <span className="organize-icon">⚡</span>
+                <span className="organize-text">Auto-Organize</span>
+            </button>
+            <div className="control-divider"></div>
+            <button
+                className="organize-btn-small"
+                onClick={onResetLayout}
+                title="Reset layout to original positions"
+            >
+                ↻ Reset
             </button>
         </div>
     );
@@ -621,6 +454,21 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson }) => {
         }
     }, [onSelectPerson]);
 
+    // Reset layout to initial positions
+    const handleResetLayout = React.useCallback(() => {
+        const { nodes: newNodes, edges: newEdges } = calculateFluidLayout(treeData);
+        setNodes(newNodes);
+        setEdges(newEdges);
+
+        // Fit view after resetting
+        setTimeout(() => {
+            const { fitView } = useReactFlow;
+            if (fitView) {
+                fitView({ padding: 0.2, duration: 800 });
+            }
+        }, 100);
+    }, [treeData, setNodes, setEdges]);
+
     return (
         <>
             <ReactFlow
@@ -641,7 +489,7 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson }) => {
             >
                 <Background color="#e5ddd2" gap={20} size={1} />
             </ReactFlow>
-            <FluidTreeControls nodes={nodes} edges={edges} setNodes={setNodes} />
+            <FluidTreeControls onResetLayout={handleResetLayout} />
         </>
     );
 };
