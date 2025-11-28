@@ -209,7 +209,7 @@ const FluidEdge = ({
 // ==========================================
 // LAYOUT ALGORITHM
 // ==========================================
-const calculateFluidLayout = (treeData) => {
+const calculateFluidLayout = (treeData, viewState = null) => {
     const nodes = [];
     const edges = [];
     const nodeWidth = 180;
@@ -217,6 +217,13 @@ const calculateFluidLayout = (treeData) => {
     const horizontalSpacing = 100;
     const verticalSpacing = 200;
     const marriageNodeSize = 20;
+
+    // Check if we have saved positions to restore
+    const savedPositions = viewState?.nodes ?
+        viewState.nodes.reduce((acc, node) => {
+            acc[node.id] = { x: node.x, y: node.y };
+            return acc;
+        }, {}) : null;
 
     // Track generation levels
     const generations = {};
@@ -292,11 +299,16 @@ const calculateFluidLayout = (treeData) => {
         peopleInGen.forEach(personId => {
             const person = treeData.people[personId];
 
+            // Use saved position if available, otherwise calculate new position
+            const position = savedPositions && savedPositions[personId]
+                ? savedPositions[personId]
+                : { x: currentX, y: currentY };
+
             // Add person node
             nodes.push({
                 id: personId,
                 type: 'personNode',
-                position: { x: currentX, y: currentY },
+                position: position,
                 data: {
                     person,
                     personId,
@@ -329,15 +341,19 @@ const calculateFluidLayout = (treeData) => {
 
         if (!parent1Node || !parent2Node) return;
 
-        // Position marriage node between parents, slightly below
-        const marriageX = (parent1Node.position.x + parent2Node.position.x) / 2 + nodeWidth / 2;
-        const marriageY = Math.max(parent1Node.position.y, parent2Node.position.y) + nodeHeight + 40;
+        // Use saved position if available, otherwise calculate position between parents
+        const defaultMarriageX = (parent1Node.position.x + parent2Node.position.x) / 2 + nodeWidth / 2;
+        const defaultMarriageY = Math.max(parent1Node.position.y, parent2Node.position.y) + nodeHeight + 40;
+
+        const marriagePosition = savedPositions && savedPositions[marriageNodeId]
+            ? savedPositions[marriageNodeId]
+            : { x: defaultMarriageX - marriageNodeSize / 2, y: defaultMarriageY };
 
         // Add marriage node
         nodes.push({
             id: marriageNodeId,
             type: 'marriageNode',
-            position: { x: marriageX - marriageNodeSize / 2, y: marriageY },
+            position: marriagePosition,
             data: {},
         });
 
@@ -578,13 +594,16 @@ const FluidTreeControls = ({ nodes, edges, setNodes }) => {
 // ==========================================
 // INNER COMPONENT - Has access to ReactFlow context
 // ==========================================
-const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson }) => {
-    // Calculate layout
+const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePositionsRef }) => {
+    // Calculate layout with viewState if available
     const { nodes: initialNodes, edges: initialEdges } = React.useMemo(
         () => {
             console.log('Calculating layout for treeData:', treeData);
-            const layout = calculateFluidLayout(treeData);
+            const layout = calculateFluidLayout(treeData, treeData.viewState);
             console.log('Layout calculated:', layout.nodes.length, 'nodes,', layout.edges.length, 'edges');
+            if (treeData.viewState) {
+                console.log('📍 Using saved view state with', treeData.viewState.nodes?.length, 'node positions');
+            }
             return layout;
         },
         [treeData]
@@ -597,34 +616,54 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson }) => {
     const prevTreeDataRef = React.useRef(treeData);
     const { fitView } = useReactFlow();
 
+    // Set up callback to provide current node positions to parent component
+    React.useEffect(() => {
+        if (getNodePositionsRef) {
+            getNodePositionsRef.current = () => nodes;
+        }
+    }, [nodes, getNodePositionsRef]);
+
     // Update nodes and edges when treeData changes (person added/removed/modified)
     React.useEffect(() => {
         // Only recalculate if treeData actually changed (not just a re-render)
         if (prevTreeDataRef.current !== treeData) {
-            console.log('🔄 TreeData changed, recalculating layout and applying Web Mode');
-            const { nodes: newNodes, edges: newEdges } = calculateFluidLayout(treeData);
+            const hasViewState = treeData.viewState && treeData.viewState.nodes && treeData.viewState.nodes.length > 0;
+            console.log('🔄 TreeData changed, recalculating layout', hasViewState ? '(with saved positions)' : 'and applying Web Mode');
+
+            const { nodes: newNodes, edges: newEdges } = calculateFluidLayout(treeData, treeData.viewState);
             setNodes(newNodes);
             setEdges(newEdges);
             prevTreeDataRef.current = treeData;
 
-            // Automatically apply Web Mode after layout calculation
-            setTimeout(async () => {
-                try {
-                    const organizedNodes = await applyWebMode(newNodes, newEdges);
-                    setNodes(organizedNodes);
+            // Only automatically apply Web Mode if there's no saved view state
+            if (!hasViewState) {
+                setTimeout(async () => {
+                    try {
+                        const organizedNodes = await applyWebMode(newNodes, newEdges);
+                        setNodes(organizedNodes);
 
-                    // Fit view after Web Mode
-                    setTimeout(() => {
-                        fitView({
-                            padding: 0.2,
-                            duration: 800,
-                            maxZoom: 1.5
-                        });
-                    }, 100);
-                } catch (error) {
-                    console.error('Error during auto Web Mode:', error);
-                }
-            }, 50);
+                        // Fit view after Web Mode
+                        setTimeout(() => {
+                            fitView({
+                                padding: 0.2,
+                                duration: 800,
+                                maxZoom: 1.5
+                            });
+                        }, 100);
+                    } catch (error) {
+                        console.error('Error during auto Web Mode:', error);
+                    }
+                }, 50);
+            } else {
+                // Just fit view to show saved positions
+                setTimeout(() => {
+                    fitView({
+                        padding: 0.2,
+                        duration: 800,
+                        maxZoom: 1.5
+                    });
+                }, 100);
+            }
         }
     }, [treeData, setNodes, setEdges, fitView]);
 
@@ -674,12 +713,13 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson }) => {
 // ==========================================
 // MAIN REACT FLOW COMPONENT - Wrapper with Provider
 // ==========================================
-const FluidTreeWithReactFlow = ({ treeData, selectedPerson, onSelectPerson }) => {
+const FluidTreeWithReactFlow = ({ treeData, selectedPerson, onSelectPerson, getNodePositionsRef }) => {
     console.log('FluidTreeWithReactFlow called with:', {
         hasTreeData: !!treeData,
         peopleCount: treeData?.people ? Object.keys(treeData.people).length : 0,
         marriagesCount: treeData?.mariages?.length || 0,
-        hasReactFlow: !!ReactFlow
+        hasReactFlow: !!ReactFlow,
+        hasViewState: !!treeData?.viewState
     });
 
     if (!ReactFlow) {
@@ -718,6 +758,7 @@ const FluidTreeWithReactFlow = ({ treeData, selectedPerson, onSelectPerson }) =>
                     treeData={treeData}
                     selectedPerson={selectedPerson}
                     onSelectPerson={onSelectPerson}
+                    getNodePositionsRef={getNodePositionsRef}
                 />
             </ReactFlowProvider>
         </div>

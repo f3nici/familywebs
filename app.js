@@ -666,6 +666,7 @@
             const [showAddMarriageModal, setShowAddMarriageModal] = useState(false);
 
             const fileInputRef = useRef(null);
+            const getNodePositionsRef = useRef(null); // Callback to get current node positions from FluidTree
 
             // Filter people based on search
             const filteredPeople = useMemo(() => {
@@ -715,7 +716,24 @@
 
             const handleDownload = () => {
                 if (!treeData) return;
-                const dataStr = JSON.stringify(treeData, null, 2);
+
+                // Get current node positions from FluidTreeWithReactFlow
+                let dataToExport = { ...treeData };
+                if (getNodePositionsRef.current) {
+                    const nodePositions = getNodePositionsRef.current();
+                    if (nodePositions && nodePositions.length > 0) {
+                        // Save node positions to viewState
+                        dataToExport.viewState = {
+                            nodes: nodePositions.map(node => ({
+                                id: node.id,
+                                x: node.position.x,
+                                y: node.position.y
+                            }))
+                        };
+                    }
+                }
+
+                const dataStr = JSON.stringify(dataToExport, null, 2);
                 const blob = new Blob([dataStr], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -995,6 +1013,7 @@
                                         treeData={treeData}
                                         selectedPerson={selectedPerson}
                                         onSelectPerson={setSelectedPerson}
+                                        getNodePositionsRef={getNodePositionsRef}
                                     />
                                 </div>
                             ) : (
