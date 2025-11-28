@@ -150,7 +150,12 @@
     opacity: 0; /* Hidden by default */
 }
 
-.react-flow-person-node:hover .react-flow-handle,
+/* Hide handles on person nodes completely */
+.react-flow-person-node .react-flow-handle {
+    display: none !important;
+}
+
+/* Only show handles on marriage nodes when hovering */
 .react-flow-marriage-node:hover .react-flow-handle {
     opacity: 1;
 }

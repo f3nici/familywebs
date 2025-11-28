@@ -430,7 +430,6 @@
                 attachments: []
             });
             const [birthDate, setBirthDate] = useState('');
-            const [relationship, setRelationship] = useState({ type: '', personId: '' });
 
             if (!isOpen) return null;
 
@@ -439,10 +438,9 @@
                     ...newPerson,
                     events: birthDate ? [{ type: '$_BIRTH', dateStart: birthDate, comment: '' }] : []
                 };
-                onAdd(person, relationship);
+                onAdd(person, { type: '', personId: '' });
                 setNewPerson({ name: '', surname: '', gender: '', events: [], information: '', photos: [], attachments: [] });
                 setBirthDate('');
-                setRelationship({ type: '', personId: '' });
                 onClose();
             };
 
@@ -491,48 +489,12 @@
                             </div>
                             <div className="form-group">
                                 <label className="form-label">Birth Date</label>
-                                <input 
+                                <input
                                     type="date"
                                     className="form-input"
                                     value={birthDate}
                                     onChange={(e) => setBirthDate(e.target.value)}
                                 />
-                            </div>
-                            
-                            <div style={{marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--border-subtle)'}}>
-                                <h4 style={{fontFamily: 'var(--font-display)', marginBottom: '16px'}}>
-                                    Relationship (Optional)
-                                </h4>
-                                <div className="form-group">
-                                    <label className="form-label">Relationship Type</label>
-                                    <select 
-                                        className="form-input form-select"
-                                        value={relationship.type}
-                                        onChange={(e) => setRelationship(prev => ({...prev, type: e.target.value}))}
-                                    >
-                                        <option value="">None - Add without relationship</option>
-                                        <option value="spouse">Spouse of...</option>
-                                        <option value="child">Child of...</option>
-                                        <option value="parent">Parent of...</option>
-                                    </select>
-                                </div>
-                                {relationship.type && (
-                                    <div className="form-group">
-                                        <label className="form-label">Related Person</label>
-                                        <select 
-                                            className="form-input form-select"
-                                            value={relationship.personId}
-                                            onChange={(e) => setRelationship(prev => ({...prev, personId: e.target.value}))}
-                                        >
-                                            <option value="">Select person...</option>
-                                            {Object.entries(treeData.people).map(([id, person]) => (
-                                                <option key={id} value={id}>
-                                                    {person.name} {person.surname}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                )}
                             </div>
                         </div>
                         <div className="modal-footer">
@@ -554,23 +516,33 @@
         const AddMarriageModal = ({ isOpen, onClose, onAdd, treeData }) => {
             const [spouse1, setSpouse1] = useState('');
             const [spouse2, setSpouse2] = useState('');
+            const [selectedChildren, setSelectedChildren] = useState([]);
 
             if (!isOpen) return null;
 
             const handleSubmit = () => {
                 if (spouse1 && spouse2 && spouse1 !== spouse2) {
-                    onAdd(spouse1, spouse2);
+                    onAdd(spouse1, spouse2, selectedChildren);
                     setSpouse1('');
                     setSpouse2('');
+                    setSelectedChildren([]);
                     onClose();
                 }
+            };
+
+            const toggleChild = (childId) => {
+                setSelectedChildren(prev =>
+                    prev.includes(childId)
+                        ? prev.filter(id => id !== childId)
+                        : [...prev, childId]
+                );
             };
 
             return (
                 <div className="modal-overlay" onClick={onClose}>
                     <div className="modal" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h2 className="modal-title">Add Marriage/Partnership</h2>
+                            <h2 className="modal-title">Add Partner</h2>
                             <button className="btn btn-ghost btn-icon" onClick={onClose}>
                                 {Icons.close}
                             </button>
@@ -593,7 +565,7 @@
                             </div>
                             <div className="form-group">
                                 <label className="form-label">Second Partner</label>
-                                <select 
+                                <select
                                     className="form-input form-select"
                                     value={spouse2}
                                     onChange={(e) => setSpouse2(e.target.value)}
@@ -608,15 +580,41 @@
                                         ))}
                                 </select>
                             </div>
+
+                            <div style={{marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--border-subtle)'}}>
+                                <h4 style={{fontFamily: 'var(--font-display)', marginBottom: '16px'}}>
+                                    Children (Optional)
+                                </h4>
+                                <div style={{maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--border-subtle)', borderRadius: '8px', padding: '8px'}}>
+                                    {Object.entries(treeData.people)
+                                        .filter(([id]) => id !== spouse1 && id !== spouse2)
+                                        .map(([id, person]) => (
+                                            <label key={id} style={{display: 'flex', alignItems: 'center', padding: '8px', cursor: 'pointer', borderRadius: '4px', marginBottom: '4px', backgroundColor: selectedChildren.includes(id) ? 'var(--bg-selected)' : 'transparent'}}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedChildren.includes(id)}
+                                                    onChange={() => toggleChild(id)}
+                                                    style={{marginRight: '8px'}}
+                                                />
+                                                <span>{person.name} {person.surname}</span>
+                                            </label>
+                                        ))}
+                                    {Object.keys(treeData.people).length <= 2 && (
+                                        <p style={{color: 'var(--text-muted)', fontStyle: 'italic', padding: '8px'}}>
+                                            No other people available to select as children
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                         <div className="modal-footer">
                             <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
-                            <button 
-                                className="btn btn-primary" 
+                            <button
+                                className="btn btn-primary"
                                 onClick={handleSubmit}
                                 disabled={!spouse1 || !spouse2}
                             >
-                                Add Marriage
+                                Add Partner
                             </button>
                         </div>
                     </div>
@@ -826,11 +824,11 @@
                 setSelectedPerson(newId);
             };
 
-            const handleAddMarriage = (spouse1Id, spouse2Id) => {
+            const handleAddMarriage = (spouse1Id, spouse2Id, children = []) => {
                 setTreeData(prev => ({
                     ...prev,
                     updatedAt: new Date().toISOString(),
-                    mariages: [...prev.mariages, [spouse1Id, spouse2Id]]
+                    mariages: [...prev.mariages, [spouse1Id, spouse2Id, ...children]]
                 }));
             };
 
@@ -978,12 +976,12 @@
                                     >
                                         {Icons.plus} Add Person
                                     </button>
-                                    <button 
-                                        className="btn btn-secondary" 
+                                    <button
+                                        className="btn btn-secondary"
                                         style={{width: '100%'}}
                                         onClick={() => setShowAddMarriageModal(true)}
                                     >
-                                        {Icons.marriage} Add Marriage
+                                        {Icons.marriage} Add Partner
                                     </button>
                                 </div>
                             )}
