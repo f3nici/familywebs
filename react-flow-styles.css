@@ -196,31 +196,31 @@
 /* Marriage edges (parent to marriage node) */
 .react-flow-edge-path.marriage-edge {
     stroke: var(--accent-warm);
-    stroke-width: 3;
+    stroke-width: 5;
     stroke-dasharray: 12 8;
     stroke-linecap: round;
     stroke-linejoin: round;
-    animation: dash-flow 10s linear infinite;
+    animation: dash-flow 5s linear infinite;
 }
 
 /* Child edges (marriage node to children) */
 .react-flow-edge-path.child-edge {
     stroke: var(--accent-sage);
-    stroke-width: 2.5;
+    stroke-width: 4.5;
     stroke-dasharray: 10 7;
     stroke-linecap: round;
     stroke-linejoin: round;
-    animation: dash-flow 12s linear infinite;
+    animation: dash-flow 6s linear infinite;
 }
 
 /* Hover effects */
 .react-flow__edge:hover .react-flow-edge-path {
-    stroke-width: 4;
+    stroke-width: 6;
     filter: drop-shadow(0 0 4px currentColor);
 }
 
 .react-flow__edge.selected .react-flow-edge-path {
-    stroke-width: 4;
+    stroke-width: 6;
     filter: drop-shadow(0 0 6px currentColor);
 }
 

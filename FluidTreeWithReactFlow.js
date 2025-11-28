@@ -439,21 +439,21 @@ const applyWebMode = async (nodes, edges) => {
             .force('link', d3.forceLink(simLinks)
                 .id(d => d.id)
                 .distance(d => {
-                    // Marriage edges: parents close to marriage node (increased spacing)
-                    if (d.type === 'marriage') return 180;
-                    // Child edges: marriage node to children (increased spacing)
-                    if (d.type === 'child') return 280;
-                    return 200;
+                    // Marriage edges: parents close to marriage node (very increased spacing)
+                    if (d.type === 'marriage') return 250;
+                    // Child edges: marriage node to children (very increased spacing)
+                    if (d.type === 'child') return 350;
+                    return 280;
                 })
-                .strength(0.6) // Slightly weaker links for more flexibility
+                .strength(0.5) // Weaker links for more flexibility
             )
             // Repulsion between all nodes to prevent overlap
             .force('charge', d3.forceManyBody()
                 .strength(d => {
-                    // Marriage nodes have moderate repulsion
-                    if (d.type === 'marriageNode') return -800;
-                    // Person nodes have strong repulsion to prevent overlaps
-                    return -2000;
+                    // Marriage nodes have strong repulsion
+                    if (d.type === 'marriageNode') return -1500;
+                    // Person nodes have very strong repulsion to prevent overlaps
+                    return -3500;
                 })
             )
             // Pull toward center to keep layout compact
@@ -461,23 +461,26 @@ const applyWebMode = async (nodes, edges) => {
             // Prevent node overlap with collision detection
             .force('collision', d3.forceCollide()
                 .radius(d => {
-                    // Person nodes need much more space to account for edges
-                    if (d.type === 'personNode') return 180;
-                    // Marriage nodes need more space too
-                    return 80;
+                    // Person nodes need massive space to account for edges and prevent overlaps
+                    if (d.type === 'personNode') return 250;
+                    // Marriage nodes need significant space too
+                    return 120;
                 })
                 .strength(1.0) // Maximum collision strength
-                .iterations(3) // More collision iterations for better accuracy
+                .iterations(5) // Many collision iterations for better accuracy
             )
-            .alphaDecay(0.015) // Even slower cooling for better convergence
-            .velocityDecay(0.5); // More friction for stability
+            // Add X and Y positioning forces to spread nodes out
+            .force('x', d3.forceX(500).strength(0.05))
+            .force('y', d3.forceY(400).strength(0.05))
+            .alphaDecay(0.01) // Very slow cooling for excellent convergence
+            .velocityDecay(0.6); // High friction for stability
 
         console.log('✅ Simulation created, starting ticks...');
 
         // Run simulation asynchronously
         const ticksPerFrame = 10;
         let tickCount = 0;
-        const maxTicks = 500; // More iterations for better layout convergence
+        const maxTicks = 800; // Many iterations for excellent layout convergence
 
         const tick = () => {
             for (let i = 0; i < ticksPerFrame; i++) {
