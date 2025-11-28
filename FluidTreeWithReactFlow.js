@@ -433,51 +433,47 @@ const applyWebMode = async (nodes, edges) => {
 
         console.log('🔧 Creating d3 simulation with', simNodes.length, 'nodes and', simLinks.length, 'links');
 
-        // Configure d3-force simulation for compact web layout
+        // Configure d3-force simulation for tight compact layout
         const simulation = d3.forceSimulation(simNodes)
-            // Attraction between connected nodes
+            // Very strong attraction between connected nodes
             .force('link', d3.forceLink(simLinks)
                 .id(d => d.id)
                 .distance(d => {
-                    // Marriage edges: parents close to marriage node (compact spacing)
-                    if (d.type === 'marriage') return 120;
-                    // Child edges: marriage node to children (compact spacing)
-                    if (d.type === 'child') return 180;
-                    return 140;
+                    // Very short distances to pack nodes tightly
+                    if (d.type === 'marriage') return 80;
+                    if (d.type === 'child') return 120;
+                    return 100;
                 })
-                .strength(0.6) // Stronger links to keep connected nodes closer
+                .strength(0.9) // Very strong links to minimize edge length and crossings
             )
-            // Repulsion between all nodes to prevent overlap
+            // Weaker repulsion to allow nodes to be closer
             .force('charge', d3.forceManyBody()
                 .strength(d => {
-                    // Marriage nodes with moderate repulsion
-                    if (d.type === 'marriageNode') return -800;
-                    // Person nodes with strong but not excessive repulsion
-                    return -1800;
+                    if (d.type === 'marriageNode') return -400;
+                    return -1000;
                 })
             )
-            // Gentle centering to keep layout from drifting too far
+            // Gentle centering
             .force('center', d3.forceCenter(500, 400))
-            // Prevent node overlap with collision detection
+            // Tighter collision detection
             .force('collision', d3.forceCollide()
                 .radius(d => {
-                    // Person nodes need space to prevent overlap but not excessive
-                    if (d.type === 'personNode') return 200;
-                    // Marriage nodes are smaller
-                    return 90;
+                    // Smaller radii to pack tighter
+                    if (d.type === 'personNode') return 150;
+                    return 60;
                 })
-                .strength(0.95) // Strong collision to prevent overlaps
-                .iterations(5) // Good collision accuracy
+                .strength(0.9)
+                .iterations(4)
             )
-            .alphaDecay(0.01) // Moderate cooling for good convergence
-            .velocityDecay(0.6); // Moderate friction
+            .alphaDecay(0.015) // Slower cooling for better settling
+            .velocityDecay(0.5); // Moderate friction
 
         console.log('✅ Simulation created, starting ticks...');
 
         // Run simulation asynchronously
         const ticksPerFrame = 10;
         let tickCount = 0;
-        const maxTicks = 600; // Moderate iterations for compact layout
+        const maxTicks = 800; // Many iterations for best convergence
 
         const tick = () => {
             for (let i = 0; i < ticksPerFrame; i++) {
@@ -486,12 +482,12 @@ const applyWebMode = async (nodes, edges) => {
             }
 
             // Check if simulation has cooled down or reached max iterations
-            if (simulation.alpha() < 0.01 || tickCount >= maxTicks) {
+            if (simulation.alpha() < 0.005 || tickCount >= maxTicks) {
                 simulation.stop();
                 console.log('✅ Simulation complete:', {
                     tickCount,
                     alpha: simulation.alpha(),
-                    reason: simulation.alpha() < 0.01 ? 'converged' : 'max iterations'
+                    reason: simulation.alpha() < 0.005 ? 'converged' : 'max iterations'
                 });
 
                 // Update node positions from simulation
