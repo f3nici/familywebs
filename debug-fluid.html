@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Fluid Tree</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reactflow@11.10.1/dist/umd/index.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reactflow@11.10.1/dist/style.css">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="react-flow-styles.css">
+    <style>
+        body { margin: 0; font-family: sans-serif; }
+        #root { width: 100vw; height: 100vh; background: #f5f5f5; }
+        .debug-info {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 10000;
+            max-width: 300px;
+            font-size: 12px;
+        }
+        .debug-item { margin: 5px 0; }
+        .debug-success { color: #28a745; }
+        .debug-error { color: #dc3545; }
+        .debug-warning { color: #ffc107; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel" src="FluidTreeWithReactFlow.js"></script>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const testData = {
+            id: "debug-tree",
+            name: "Debug Family Tree",
+            people: {
+                "p1": { name: "John", surname: "Doe", gender: "MALE", events: [{ type: "$_BIRTH", dateStart: "1950-01-15" }] },
+                "p2": { name: "Jane", surname: "Doe", gender: "FEMALE", events: [{ type: "$_BIRTH", dateStart: "1952-03-20" }] },
+                "p3": { name: "Alice", surname: "Doe", gender: "FEMALE", events: [{ type: "$_BIRTH", dateStart: "1975-06-10" }] }
+            },
+            mariages: [["p1", "p2", "p3"]]
+        };
+
+        const DebugApp = () => {
+            const [selectedPerson, setSelectedPerson] = useState(null);
+            const [debugInfo, setDebugInfo] = useState({});
+
+            useEffect(() => {
+                console.log('=== DEBUG INFO ===');
+                const info = {
+                    reactFlowLoaded: !!window.ReactFlow,
+                    componentLoaded: !!window.FluidTreeWithReactFlow,
+                    peopleCount: Object.keys(testData.people).length,
+                    marriagesCount: testData.mariages.length,
+                    reactFlowVersion: window.ReactFlow ? 'Loaded' : 'Not found',
+                };
+
+                console.log('React Flow:', info.reactFlowLoaded);
+                console.log('Component:', info.componentLoaded);
+                console.log('People:', info.peopleCount);
+                console.log('Marriages:', info.marriagesCount);
+
+                setDebugInfo(info);
+            }, []);
+
+            const FluidTreeWithReactFlow = window.FluidTreeWithReactFlow;
+
+            return (
+                <>
+                    <div className="debug-info">
+                        <h3 style={{margin: '0 0 10px 0'}}>🔍 Debug Info</h3>
+                        <div className="debug-item">
+                            <span className={debugInfo.reactFlowLoaded ? 'debug-success' : 'debug-error'}>
+                                {debugInfo.reactFlowLoaded ? '✅' : '❌'} React Flow
+                            </span>
+                        </div>
+                        <div className="debug-item">
+                            <span className={debugInfo.componentLoaded ? 'debug-success' : 'debug-error'}>
+                                {debugInfo.componentLoaded ? '✅' : '❌'} FluidTreeWithReactFlow
+                            </span>
+                        </div>
+                        <div className="debug-item">
+                            <span className="debug-success">
+                                👥 {debugInfo.peopleCount} people
+                            </span>
+                        </div>
+                        <div className="debug-item">
+                            <span className="debug-success">
+                                💍 {debugInfo.marriagesCount} marriages
+                            </span>
+                        </div>
+                        <div className="debug-item">
+                            <span className="debug-warning">
+                                Selected: {selectedPerson || 'None'}
+                            </span>
+                        </div>
+                        <div style={{marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #ddd', fontSize: '10px', color: '#666'}}>
+                            Open console (F12) for detailed logs
+                        </div>
+                    </div>
+
+                    <div style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}>
+                        {FluidTreeWithReactFlow ? (
+                            <FluidTreeWithReactFlow
+                                treeData={testData}
+                                selectedPerson={selectedPerson}
+                                onSelectPerson={(id) => {
+                                    console.log('Person selected:', id);
+                                    setSelectedPerson(id);
+                                }}
+                            />
+                        ) : (
+                            <div style={{ padding: '100px', textAlign: 'center', background: 'white' }}>
+                                <h1 style={{color: '#dc3545'}}>❌ Component Not Loaded</h1>
+                                <p>FluidTreeWithReactFlow is not available</p>
+                                <p>Check the browser console for errors</p>
+                            </div>
+                        )}
+                    </div>
+                </>
+            );
+        };
+
+        ReactDOM.render(<DebugApp />, document.getElementById('root'));
+        console.log('✅ Debug app rendered');
+    </script>
+</body>
+</html>

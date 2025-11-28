@@ -1126,56 +1126,65 @@
 
                         {/* Tree Canvas */}
                         <main className="tree-canvas">
-                            <div className="tree-viewport" style={{transform: `scale(${zoom})`, transformOrigin: 'top center'}}>
-                                <div className="tree-content">
-                                    {Object.keys(treeData.people).length === 0 ? (
-                                        <div className="empty-state">
-                                            <div className="empty-icon">{Icons.tree}</div>
-                                            <h3 className="empty-title">Start Your Family Tree</h3>
-                                            <p className="empty-text">
-                                                Add your first family member to begin building your tree.
-                                            </p>
-                                            {isEditMode && (
-                                                <button 
-                                                    className="btn btn-primary" 
-                                                    style={{marginTop: '24px'}}
-                                                    onClick={() => setShowAddPersonModal(true)}
-                                                >
-                                                    {Icons.plus} Add First Person
-                                                </button>
+                            {/* Fluid mode: React Flow needs direct container access */}
+                            {viewMode === 'fluid' && Object.keys(treeData.people).length > 0 ? (
+                                <div style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}>
+                                    <FluidTreeWithReactFlow
+                                        treeData={treeData}
+                                        selectedPerson={selectedPerson}
+                                        onSelectPerson={setSelectedPerson}
+                                    />
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="tree-viewport" style={{transform: `scale(${zoom})`, transformOrigin: 'top center'}}>
+                                        <div className="tree-content">
+                                            {Object.keys(treeData.people).length === 0 ? (
+                                                <div className="empty-state">
+                                                    <div className="empty-icon">{Icons.tree}</div>
+                                                    <h3 className="empty-title">Start Your Family Tree</h3>
+                                                    <p className="empty-text">
+                                                        Add your first family member to begin building your tree.
+                                                    </p>
+                                                    {isEditMode && (
+                                                        <button
+                                                            className="btn btn-primary"
+                                                            style={{marginTop: '24px'}}
+                                                            onClick={() => setShowAddPersonModal(true)}
+                                                        >
+                                                            {Icons.plus} Add First Person
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <StrictTreeView
+                                                    treeData={treeData}
+                                                    selectedPerson={selectedPerson}
+                                                    onSelectPerson={setSelectedPerson}
+                                                    isEditMode={isEditMode}
+                                                />
                                             )}
                                         </div>
-                                    ) : viewMode === 'fluid' ? (
-                                        <FluidTreeWithReactFlow
-                                            treeData={treeData}
-                                            selectedPerson={selectedPerson}
-                                            onSelectPerson={setSelectedPerson}
-                                        />
-                                    ) : (
-                                        <StrictTreeView 
-                                            treeData={treeData}
-                                            selectedPerson={selectedPerson}
-                                            onSelectPerson={setSelectedPerson}
-                                            isEditMode={isEditMode}
-                                        />
+                                    </div>
+
+                                    {/* Zoom Controls - only for strict mode */}
+                                    {viewMode !== 'fluid' && (
+                                        <div className="zoom-controls">
+                                            <button className="zoom-btn" onClick={() => setZoom(z => Math.min(z + 0.1, 2))}>
+                                                {Icons.zoomIn}
+                                            </button>
+                                            <div className="zoom-divider" />
+                                            <button className="zoom-btn" onClick={() => setZoom(1)}>
+                                                {Icons.reset}
+                                            </button>
+                                            <div className="zoom-divider" />
+                                            <button className="zoom-btn" onClick={() => setZoom(z => Math.max(z - 0.1, 0.5))}>
+                                                {Icons.zoomOut}
+                                            </button>
+                                        </div>
                                     )}
-                                </div>
-                            </div>
-                            
-                            {/* Zoom Controls */}
-                            <div className="zoom-controls">
-                                <button className="zoom-btn" onClick={() => setZoom(z => Math.min(z + 0.1, 2))}>
-                                    {Icons.zoomIn}
-                                </button>
-                                <div className="zoom-divider" />
-                                <button className="zoom-btn" onClick={() => setZoom(1)}>
-                                    {Icons.reset}
-                                </button>
-                                <div className="zoom-divider" />
-                                <button className="zoom-btn" onClick={() => setZoom(z => Math.max(z - 0.1, 0.5))}>
-                                    {Icons.zoomOut}
-                                </button>
-                            </div>
+                                </>
+                            )}
                         </main>
 
                         {/* Detail Panel */}
