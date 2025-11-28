@@ -653,7 +653,7 @@
         */
 
         // NOTE: Now using FluidTreeWithReactFlow component from FluidTreeWithReactFlow.js
-        // which provides relationship lines, marriage nodes, and auto-organize functionality
+        // which provides relationship lines, marriage nodes, and Web Mode functionality
         const FluidTreeWithReactFlow = window.FluidTreeWithReactFlow;
 
         // Main App Component

@@ -197,20 +197,20 @@
 .react-flow-edge-path.marriage-edge {
     stroke: var(--accent-warm);
     stroke-width: 3;
-    stroke-dasharray: 6 4;
+    stroke-dasharray: 12 8;
     stroke-linecap: round;
     stroke-linejoin: round;
-    animation: dash-flow 20s linear infinite;
+    animation: dash-flow 10s linear infinite;
 }
 
 /* Child edges (marriage node to children) */
 .react-flow-edge-path.child-edge {
     stroke: var(--accent-sage);
     stroke-width: 2.5;
-    stroke-dasharray: 4 3;
+    stroke-dasharray: 10 7;
     stroke-linecap: round;
     stroke-linejoin: round;
-    animation: dash-flow 25s linear infinite;
+    animation: dash-flow 12s linear infinite;
 }
 
 /* Hover effects */
@@ -369,7 +369,7 @@
 }
 
 /* ==========================================
-   FLUID TREE CONTROLS - Auto-Organize Button
+   FLUID TREE CONTROLS - Web Mode Button
    ========================================== */
 
 .fluid-tree-controls {

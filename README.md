@@ -138,7 +138,6 @@ IDs reference relationships across the tree.
 
 ## Future Enhancements
 
-* Auto-organised layout with no line collisions
 * More advanced relationship edge rendering
 * Attachments for profiles (images, docs)
 * GEDCOM import
