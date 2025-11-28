@@ -660,6 +660,7 @@
 
         // NOTE: Now using FluidTreeWithReactFlow component from FluidTreeWithReactFlow.js
         // which provides relationship lines, marriage nodes, and auto-organize functionality
+        const FluidTreeWithReactFlow = window.FluidTreeWithReactFlow;
 
         // Strict Tree View - Hierarchical generations view
         const StrictTreeView = ({ treeData, selectedPerson, onSelectPerson, isEditMode }) => {
