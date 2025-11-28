@@ -417,12 +417,24 @@ const FluidTreeControls = ({ onResetLayout }) => {
 const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson }) => {
     // Calculate layout
     const { nodes: initialNodes, edges: initialEdges } = React.useMemo(
-        () => calculateFluidLayout(treeData),
+        () => {
+            console.log('Calculating layout for treeData:', treeData);
+            const layout = calculateFluidLayout(treeData);
+            console.log('Layout calculated:', layout.nodes.length, 'nodes,', layout.edges.length, 'edges');
+            return layout;
+        },
         [treeData]
     );
 
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+    // Update nodes and edges when treeData changes
+    React.useEffect(() => {
+        const { nodes: newNodes, edges: newEdges } = calculateFluidLayout(treeData);
+        setNodes(newNodes);
+        setEdges(newEdges);
+    }, [treeData, setNodes, setEdges]);
 
     // Define custom node types
     const nodeTypes = React.useMemo(() => ({
@@ -486,14 +498,42 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson }) => {
 // MAIN REACT FLOW COMPONENT - Wrapper with Provider
 // ==========================================
 const FluidTreeWithReactFlow = ({ treeData, selectedPerson, onSelectPerson }) => {
+    console.log('FluidTreeWithReactFlow called with:', {
+        hasTreeData: !!treeData,
+        peopleCount: treeData?.people ? Object.keys(treeData.people).length : 0,
+        marriagesCount: treeData?.mariages?.length || 0,
+        hasReactFlow: !!ReactFlow
+    });
+
     if (!ReactFlow) {
+        console.error('React Flow not available!');
         return (
             <div className="empty-state">
-                <p className="empty-text">React Flow library not loaded. Please add the script tag to your HTML.</p>
+                <div className="empty-icon">⚠️</div>
+                <h3 className="empty-title">React Flow Not Loaded</h3>
+                <p className="empty-text">
+                    The React Flow library is required for the fluid view.
+                    Please check your internet connection and refresh the page.
+                </p>
             </div>
         );
     }
 
+    // Check if there's any data to display
+    if (!treeData || !treeData.people || Object.keys(treeData.people).length === 0) {
+        console.log('No data to display in FluidTreeWithReactFlow');
+        return (
+            <div className="empty-state">
+                <div className="empty-icon">🌳</div>
+                <h3 className="empty-title">No Family Members Yet</h3>
+                <p className="empty-text">
+                    Add your first family member to see the relationship lines.
+                </p>
+            </div>
+        );
+    }
+
+    console.log('Rendering FluidTreeWithReactFlow with data');
     return (
         <div style={{ width: '100%', height: '100%', position: 'relative' }}>
             <ReactFlowProvider>
@@ -509,3 +549,7 @@ const FluidTreeWithReactFlow = ({ treeData, selectedPerson, onSelectPerson }) =>
 
 // Export for use in main app
 window.FluidTreeWithReactFlow = FluidTreeWithReactFlow;
+
+// Log successful load
+console.log('✅ FluidTreeWithReactFlow component loaded and exported to window.FluidTreeWithReactFlow');
+console.log('React Flow available:', !!window.ReactFlow);
