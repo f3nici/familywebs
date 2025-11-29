@@ -655,6 +655,7 @@
         // NOTE: Now using FluidTreeWithReactFlow component from FluidTreeWithReactFlow.js
         // which provides relationship lines, marriage nodes, and Web Mode functionality
         const FluidTreeWithReactFlow = window.FluidTreeWithReactFlow;
+        const GenerationalView = window.GenerationalView;
 
         // Main App Component
         const FamilyTreeApp = () => {
@@ -664,6 +665,7 @@
             const [searchQuery, setSearchQuery] = useState('');
             const [showAddPersonModal, setShowAddPersonModal] = useState(false);
             const [showAddMarriageModal, setShowAddMarriageModal] = useState(false);
+            const [viewMode, setViewMode] = useState('web'); // 'web' or 'generational'
 
             const fileInputRef = useRef(null);
             const getNodePositionsRef = useRef(null); // Callback to get current node positions from FluidTree
@@ -921,6 +923,22 @@
                         <div className="tree-name">{treeData.name}</div>
 
                         <div className="header-actions">
+                            {/* View Mode Toggle */}
+                            <div className="view-mode-tabs">
+                                <button
+                                    className={`view-tab ${viewMode === 'web' ? 'active' : ''}`}
+                                    onClick={() => setViewMode('web')}
+                                >
+                                    🕸️ Web View
+                                </button>
+                                <button
+                                    className={`view-tab ${viewMode === 'generational' ? 'active' : ''}`}
+                                    onClick={() => setViewMode('generational')}
+                                >
+                                    👥 Generational View
+                                </button>
+                            </div>
+
                             {/* Edit Mode Toggle */}
                             <div className="toggle-container">
                                 <span className="toggle-label">{isEditMode ? 'Edit Mode' : 'View Only'}</span>
@@ -1008,14 +1026,24 @@
                         {/* Tree Canvas */}
                         <main className="tree-canvas">
                             {Object.keys(treeData.people).length > 0 ? (
-                                <div style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}>
-                                    <FluidTreeWithReactFlow
-                                        treeData={treeData}
-                                        selectedPerson={selectedPerson}
-                                        onSelectPerson={setSelectedPerson}
-                                        getNodePositionsRef={getNodePositionsRef}
-                                    />
-                                </div>
+                                viewMode === 'web' ? (
+                                    <div style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}>
+                                        <FluidTreeWithReactFlow
+                                            treeData={treeData}
+                                            selectedPerson={selectedPerson}
+                                            onSelectPerson={setSelectedPerson}
+                                            getNodePositionsRef={getNodePositionsRef}
+                                        />
+                                    </div>
+                                ) : (
+                                    <div style={{ width: '100%', height: '100%', overflow: 'auto' }}>
+                                        <GenerationalView
+                                            treeData={treeData}
+                                            selectedPerson={selectedPerson}
+                                            onSelectPerson={setSelectedPerson}
+                                        />
+                                    </div>
+                                )
                             ) : (
                                 <div className="tree-viewport">
                                     <div className="tree-content">

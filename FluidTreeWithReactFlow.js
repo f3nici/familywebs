@@ -584,8 +584,8 @@ const FluidTreeControls = ({ nodes, edges, setNodes }) => {
                 disabled={isApplyingWebMode}
                 title="Apply Web Mode using force-directed layout"
             >
-                <span className="organize-icon">{isApplyingWebMode ? '⏳' : '🕸️'}</span>
-                <span className="organize-text">{isApplyingWebMode ? 'Applying...' : 'Web Mode'}</span>
+                <span className="organize-icon">{isApplyingWebMode ? '⏳' : '🔄'}</span>
+                <span className="organize-text">{isApplyingWebMode ? 'Applying...' : 'Regenerate'}</span>
             </button>
         </div>
     );
