@@ -8,6 +8,8 @@ Option to set home person and view relationships to people EG: grandmother, aunt
 
 Add search in children for realtionships
 
+Option to delete people and relationships
+
 Webview to switch who is highlighted when changing in sidebar
 
 Webview to highlight lines
