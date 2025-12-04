@@ -1205,7 +1205,7 @@
                     <header className="header">
                         <div className="logo">
                             <div className="logo-icon" style={{background: 'none', borderRadius: '0'}}>
-                                <img src="assets/logo.png" alt="Family Webs" style={{width: '40px', height: '40px', objectFit: 'contain'}} />
+                                <img src="assets/logo.png" alt="Family Webs" style={{width: '60px', height: '60px', objectFit: 'contain'}} />
                             </div>
                             <span className="logo-text">Family Webs</span>
                         </div>
