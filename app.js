@@ -113,6 +113,21 @@
                 return 'Sibling';
             }
 
+            // Step-sibling (children of step-parent)
+            // Check if any of fromPerson's parents are married to any of toPerson's parents
+            // but they don't share a biological parent
+            if (fromParents && toParents && !fromParents.some(p => toParents.includes(p))) {
+                // They don't share a parent, check if their parents are married
+                for (const fromParent of fromParents) {
+                    const fromParentSpouses = spouseMap.get(fromParent) || [];
+                    for (const toParent of toParents) {
+                        if (fromParentSpouses.includes(toParent)) {
+                            return 'Step-sibling';
+                        }
+                    }
+                }
+            }
+
             // Find path through ancestors
             const getAncestors = (personId, generations = 0, maxGen = 10) => {
                 const ancestors = [{ id: personId, generation: generations }];
@@ -142,18 +157,18 @@
 
                         // Check if one is ancestor of the other
                         if (fromGen === 0) {
-                            // fromPerson is ancestor of toPerson
-                            if (toGen === 1) return 'Parent';
-                            if (toGen === 2) return 'Grandparent';
-                            if (toGen === 3) return 'Great-grandparent';
-                            return `${toGen - 2}x Great-grandparent`;
+                            // fromPerson is the common ancestor, so toPerson is a descendant of fromPerson
+                            if (toGen === 1) return 'Child';
+                            if (toGen === 2) return 'Grandchild';
+                            if (toGen === 3) return 'Great-grandchild';
+                            return `${toGen - 2}x Great-grandchild`;
                         }
                         if (toGen === 0) {
-                            // toPerson is ancestor of fromPerson
-                            if (fromGen === 1) return 'Child';
-                            if (fromGen === 2) return 'Grandchild';
-                            if (fromGen === 3) return 'Great-grandchild';
-                            return `${fromGen - 2}x Great-grandchild`;
+                            // toPerson is the common ancestor, so toPerson is an ancestor of fromPerson
+                            if (fromGen === 1) return 'Parent';
+                            if (fromGen === 2) return 'Grandparent';
+                            if (fromGen === 3) return 'Great-grandparent';
+                            return `${fromGen - 2}x Great-grandparent`;
                         }
 
                         // Cousins and extended family
