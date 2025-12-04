@@ -8,9 +8,9 @@ Option to set home person and view relationships to people EG: grandmother, aunt
 
 Better algorithm for generational view
 
-Add search in option for all people in add relashonships menu
+✅ Add search in option for all people in add relationships menu
 
-Option to delete people and relationships with search
+✅ Option to delete people and relationships with search
 
 Webview to switch who is highlighted when changing in sidebar
 

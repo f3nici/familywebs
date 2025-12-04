@@ -517,6 +517,35 @@
             const [spouse1, setSpouse1] = useState('');
             const [spouse2, setSpouse2] = useState('');
             const [selectedChildren, setSelectedChildren] = useState([]);
+            const [spouse1Search, setSpouse1Search] = useState('');
+            const [spouse2Search, setSpouse2Search] = useState('');
+            const [childrenSearch, setChildrenSearch] = useState('');
+
+            // Filter people based on search
+            const filteredSpouse1Options = useMemo(() => {
+                return Object.entries(treeData.people).filter(([id, person]) => {
+                    const fullName = `${person.name} ${person.surname}`.toLowerCase();
+                    return fullName.includes(spouse1Search.toLowerCase());
+                });
+            }, [treeData.people, spouse1Search]);
+
+            const filteredSpouse2Options = useMemo(() => {
+                return Object.entries(treeData.people)
+                    .filter(([id]) => id !== spouse1)
+                    .filter(([id, person]) => {
+                        const fullName = `${person.name} ${person.surname}`.toLowerCase();
+                        return fullName.includes(spouse2Search.toLowerCase());
+                    });
+            }, [treeData.people, spouse1, spouse2Search]);
+
+            const filteredChildrenOptions = useMemo(() => {
+                return Object.entries(treeData.people)
+                    .filter(([id]) => id !== spouse1 && id !== spouse2)
+                    .filter(([id, person]) => {
+                        const fullName = `${person.name} ${person.surname}`.toLowerCase();
+                        return fullName.includes(childrenSearch.toLowerCase());
+                    });
+            }, [treeData.people, spouse1, spouse2, childrenSearch]);
 
             if (!isOpen) return null;
 
@@ -526,6 +555,9 @@
                     setSpouse1('');
                     setSpouse2('');
                     setSelectedChildren([]);
+                    setSpouse1Search('');
+                    setSpouse2Search('');
+                    setChildrenSearch('');
                     onClose();
                 }
             };
@@ -542,7 +574,7 @@
                 <div className="modal-overlay" onClick={onClose}>
                     <div className="modal" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h2 className="modal-title">Add Partner</h2>
+                            <h2 className="modal-title">Add Relationship</h2>
                             <button className="btn btn-ghost btn-icon" onClick={onClose}>
                                 {Icons.close}
                             </button>
@@ -550,13 +582,22 @@
                         <div className="modal-body">
                             <div className="form-group">
                                 <label className="form-label">First Partner</label>
-                                <select 
+                                <input
+                                    type="text"
+                                    className="form-input"
+                                    placeholder="Search first partner..."
+                                    value={spouse1Search}
+                                    onChange={(e) => setSpouse1Search(e.target.value)}
+                                    style={{marginBottom: '8px'}}
+                                />
+                                <select
                                     className="form-input form-select"
                                     value={spouse1}
                                     onChange={(e) => setSpouse1(e.target.value)}
+                                    size="5"
                                 >
                                     <option value="">Select person...</option>
-                                    {Object.entries(treeData.people).map(([id, person]) => (
+                                    {filteredSpouse1Options.map(([id, person]) => (
                                         <option key={id} value={id}>
                                             {person.name} {person.surname}
                                         </option>
@@ -565,19 +606,26 @@
                             </div>
                             <div className="form-group">
                                 <label className="form-label">Second Partner</label>
+                                <input
+                                    type="text"
+                                    className="form-input"
+                                    placeholder="Search second partner..."
+                                    value={spouse2Search}
+                                    onChange={(e) => setSpouse2Search(e.target.value)}
+                                    style={{marginBottom: '8px'}}
+                                />
                                 <select
                                     className="form-input form-select"
                                     value={spouse2}
                                     onChange={(e) => setSpouse2(e.target.value)}
+                                    size="5"
                                 >
                                     <option value="">Select person...</option>
-                                    {Object.entries(treeData.people)
-                                        .filter(([id]) => id !== spouse1)
-                                        .map(([id, person]) => (
-                                            <option key={id} value={id}>
-                                                {person.name} {person.surname}
-                                            </option>
-                                        ))}
+                                    {filteredSpouse2Options.map(([id, person]) => (
+                                        <option key={id} value={id}>
+                                            {person.name} {person.surname}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
 
@@ -585,23 +633,29 @@
                                 <h4 style={{fontFamily: 'var(--font-display)', marginBottom: '16px'}}>
                                     Children (Optional)
                                 </h4>
+                                <input
+                                    type="text"
+                                    className="form-input"
+                                    placeholder="Search children..."
+                                    value={childrenSearch}
+                                    onChange={(e) => setChildrenSearch(e.target.value)}
+                                    style={{marginBottom: '8px'}}
+                                />
                                 <div style={{maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--border-subtle)', borderRadius: '8px', padding: '8px'}}>
-                                    {Object.entries(treeData.people)
-                                        .filter(([id]) => id !== spouse1 && id !== spouse2)
-                                        .map(([id, person]) => (
-                                            <label key={id} style={{display: 'flex', alignItems: 'center', padding: '8px', cursor: 'pointer', borderRadius: '4px', marginBottom: '4px', backgroundColor: selectedChildren.includes(id) ? 'var(--bg-selected)' : 'transparent'}}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedChildren.includes(id)}
-                                                    onChange={() => toggleChild(id)}
-                                                    style={{marginRight: '8px'}}
-                                                />
-                                                <span>{person.name} {person.surname}</span>
-                                            </label>
-                                        ))}
-                                    {Object.keys(treeData.people).length <= 2 && (
+                                    {filteredChildrenOptions.map(([id, person]) => (
+                                        <label key={id} style={{display: 'flex', alignItems: 'center', padding: '8px', cursor: 'pointer', borderRadius: '4px', marginBottom: '4px', backgroundColor: selectedChildren.includes(id) ? 'var(--bg-selected)' : 'transparent'}}>
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedChildren.includes(id)}
+                                                onChange={() => toggleChild(id)}
+                                                style={{marginRight: '8px'}}
+                                            />
+                                            <span>{person.name} {person.surname}</span>
+                                        </label>
+                                    ))}
+                                    {filteredChildrenOptions.length === 0 && (
                                         <p style={{color: 'var(--text-muted)', fontStyle: 'italic', padding: '8px'}}>
-                                            No other people available to select as children
+                                            {childrenSearch ? 'No people match your search' : 'No other people available to select as children'}
                                         </p>
                                     )}
                                 </div>
@@ -614,7 +668,215 @@
                                 onClick={handleSubmit}
                                 disabled={!spouse1 || !spouse2}
                             >
-                                Add Partner
+                                Add Relationship
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Delete Person Modal
+        const DeletePersonModal = ({ isOpen, onClose, onDelete, treeData }) => {
+            const [searchQuery, setSearchQuery] = useState('');
+            const [selectedPerson, setSelectedPerson] = useState('');
+
+            const filteredPeople = useMemo(() => {
+                return Object.entries(treeData.people).filter(([id, person]) => {
+                    const fullName = `${person.name} ${person.surname}`.toLowerCase();
+                    return fullName.includes(searchQuery.toLowerCase());
+                });
+            }, [treeData.people, searchQuery]);
+
+            if (!isOpen) return null;
+
+            const handleSubmit = () => {
+                if (selectedPerson) {
+                    onDelete(selectedPerson);
+                    setSelectedPerson('');
+                    setSearchQuery('');
+                    onClose();
+                }
+            };
+
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2 className="modal-title">Delete Person</h2>
+                            <button className="btn btn-ghost btn-icon" onClick={onClose}>
+                                {Icons.close}
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="form-group">
+                                <label className="form-label">Search Person</label>
+                                <input
+                                    type="text"
+                                    className="form-input"
+                                    placeholder="Search person to delete..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    style={{marginBottom: '8px'}}
+                                />
+                                <select
+                                    className="form-input form-select"
+                                    value={selectedPerson}
+                                    onChange={(e) => setSelectedPerson(e.target.value)}
+                                    size="10"
+                                    style={{minHeight: '200px'}}
+                                >
+                                    <option value="">Select person to delete...</option>
+                                    {filteredPeople.map(([id, person]) => (
+                                        <option key={id} value={id}>
+                                            {person.name} {person.surname}
+                                        </option>
+                                    ))}
+                                </select>
+                                {filteredPeople.length === 0 && searchQuery && (
+                                    <p style={{color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '8px'}}>
+                                        No people match your search
+                                    </p>
+                                )}
+                            </div>
+                            {selectedPerson && (
+                                <div style={{padding: '12px', backgroundColor: 'var(--bg-warning)', borderRadius: '8px', marginTop: '16px'}}>
+                                    <p style={{color: 'var(--text-warning)', fontWeight: '500'}}>
+                                        ⚠️ Warning: This will permanently delete this person and remove them from all relationships.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                            <button
+                                className="btn btn-danger"
+                                onClick={handleSubmit}
+                                disabled={!selectedPerson}
+                                style={{backgroundColor: '#dc2626', color: 'white'}}
+                            >
+                                {Icons.trash} Delete Person
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Delete Relationship Modal
+        const DeleteRelationshipModal = ({ isOpen, onClose, onDelete, treeData }) => {
+            const [searchQuery, setSearchQuery] = useState('');
+            const [selectedRelationship, setSelectedRelationship] = useState(-1);
+
+            const relationshipsList = useMemo(() => {
+                return treeData.mariages.map((marriage, index) => {
+                    if (marriage.length < 2) return null;
+
+                    const parents = marriage.slice(0, 2);
+                    const children = marriage.slice(2);
+
+                    const parent1 = treeData.people[parents[0]];
+                    const parent2 = treeData.people[parents[1]];
+
+                    const parent1Name = parent1 ? `${parent1.name} ${parent1.surname}` : 'Unknown';
+                    const parent2Name = parent2 ? `${parent2.name} ${parent2.surname}` : 'Unknown';
+
+                    const childrenNames = children
+                        .map(childId => {
+                            const child = treeData.people[childId];
+                            return child ? `${child.name} ${child.surname}` : 'Unknown';
+                        })
+                        .join(', ');
+
+                    const displayText = `${parent1Name} & ${parent2Name}${childrenNames ? ` (Children: ${childrenNames})` : ''}`;
+
+                    return {
+                        index,
+                        displayText,
+                        searchText: displayText.toLowerCase()
+                    };
+                }).filter(Boolean);
+            }, [treeData]);
+
+            const filteredRelationships = useMemo(() => {
+                return relationshipsList.filter(rel =>
+                    rel.searchText.includes(searchQuery.toLowerCase())
+                );
+            }, [relationshipsList, searchQuery]);
+
+            if (!isOpen) return null;
+
+            const handleSubmit = () => {
+                if (selectedRelationship >= 0) {
+                    onDelete(selectedRelationship);
+                    setSelectedRelationship(-1);
+                    setSearchQuery('');
+                    onClose();
+                }
+            };
+
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2 className="modal-title">Delete Relationship</h2>
+                            <button className="btn btn-ghost btn-icon" onClick={onClose}>
+                                {Icons.close}
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="form-group">
+                                <label className="form-label">Search Relationship</label>
+                                <input
+                                    type="text"
+                                    className="form-input"
+                                    placeholder="Search relationship to delete..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    style={{marginBottom: '8px'}}
+                                />
+                                <select
+                                    className="form-input form-select"
+                                    value={selectedRelationship}
+                                    onChange={(e) => setSelectedRelationship(Number(e.target.value))}
+                                    size="10"
+                                    style={{minHeight: '200px'}}
+                                >
+                                    <option value="-1">Select relationship to delete...</option>
+                                    {filteredRelationships.map(rel => (
+                                        <option key={rel.index} value={rel.index}>
+                                            {rel.displayText}
+                                        </option>
+                                    ))}
+                                </select>
+                                {filteredRelationships.length === 0 && searchQuery && (
+                                    <p style={{color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '8px'}}>
+                                        No relationships match your search
+                                    </p>
+                                )}
+                                {relationshipsList.length === 0 && (
+                                    <p style={{color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '8px'}}>
+                                        No relationships to delete
+                                    </p>
+                                )}
+                            </div>
+                            {selectedRelationship >= 0 && (
+                                <div style={{padding: '12px', backgroundColor: 'var(--bg-warning)', borderRadius: '8px', marginTop: '16px'}}>
+                                    <p style={{color: 'var(--text-warning)', fontWeight: '500'}}>
+                                        ⚠️ Warning: This will permanently delete this relationship. People will not be deleted.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                            <button
+                                className="btn btn-danger"
+                                onClick={handleSubmit}
+                                disabled={selectedRelationship < 0}
+                                style={{backgroundColor: '#dc2626', color: 'white'}}
+                            >
+                                {Icons.trash} Delete Relationship
                             </button>
                         </div>
                     </div>
@@ -665,6 +927,8 @@
             const [searchQuery, setSearchQuery] = useState('');
             const [showAddPersonModal, setShowAddPersonModal] = useState(false);
             const [showAddMarriageModal, setShowAddMarriageModal] = useState(false);
+            const [showDeletePersonModal, setShowDeletePersonModal] = useState(false);
+            const [showDeleteRelationshipModal, setShowDeleteRelationshipModal] = useState(false);
             const [viewMode, setViewMode] = useState('web'); // 'web' or 'generational'
 
             const fileInputRef = useRef(null);
@@ -854,16 +1118,25 @@
 
             const handleDeletePerson = (personId) => {
                 if (!confirm('Are you sure you want to delete this person?')) return;
-                
+
                 setTreeData(prev => {
                     const newPeople = {...prev.people};
                     delete newPeople[personId];
-                    
+
                     // Remove from marriages
+                    // Marriage structure: [parent1, parent2, child1, child2, ...]
+                    // If person is a parent (first two positions), remove entire relationship
+                    // If person is a child, just remove them from the relationship
                     const newMarriages = prev.mariages
-                        .map(m => m.filter(id => id !== personId))
-                        .filter(m => m.length >= 2); // Keep only valid marriages
-                    
+                        .filter(m => {
+                            // If person is one of the parents (first two positions), remove entire relationship
+                            if (m[0] === personId || m[1] === personId) {
+                                return false;
+                            }
+                            return true;
+                        })
+                        .map(m => m.filter(id => id !== personId)); // Remove person if they're a child
+
                     return {
                         ...prev,
                         updatedAt: new Date().toISOString(),
@@ -871,10 +1144,25 @@
                         mariages: newMarriages
                     };
                 });
-                
+
                 if (selectedPerson === personId) {
                     setSelectedPerson(null);
                 }
+            };
+
+            const handleDeleteRelationship = (relationshipIndex) => {
+                if (!confirm('Are you sure you want to delete this relationship?')) return;
+
+                setTreeData(prev => {
+                    const newMarriages = [...prev.mariages];
+                    newMarriages.splice(relationshipIndex, 1);
+
+                    return {
+                        ...prev,
+                        updatedAt: new Date().toISOString(),
+                        mariages: newMarriages
+                    };
+                });
             };
 
 
@@ -1005,8 +1293,8 @@
                             
                             {isEditMode && (
                                 <div style={{padding: '16px', borderTop: '1px solid var(--border-subtle)'}}>
-                                    <button 
-                                        className="btn btn-primary" 
+                                    <button
+                                        className="btn btn-primary"
                                         style={{width: '100%', marginBottom: '8px'}}
                                         onClick={() => setShowAddPersonModal(true)}
                                     >
@@ -1014,10 +1302,24 @@
                                     </button>
                                     <button
                                         className="btn btn-secondary"
-                                        style={{width: '100%'}}
+                                        style={{width: '100%', marginBottom: '8px'}}
                                         onClick={() => setShowAddMarriageModal(true)}
                                     >
-                                        {Icons.marriage} Add Partner
+                                        {Icons.marriage} Add Relationship
+                                    </button>
+                                    <button
+                                        className="btn btn-secondary"
+                                        style={{width: '100%', marginBottom: '8px'}}
+                                        onClick={() => setShowDeletePersonModal(true)}
+                                    >
+                                        {Icons.trash} Delete Person
+                                    </button>
+                                    <button
+                                        className="btn btn-secondary"
+                                        style={{width: '100%'}}
+                                        onClick={() => setShowDeleteRelationshipModal(true)}
+                                    >
+                                        {Icons.trash} Delete Relationship
                                     </button>
                                 </div>
                             )}
@@ -1083,16 +1385,28 @@
                     </div>
 
                     {/* Modals */}
-                    <AddPersonModal 
+                    <AddPersonModal
                         isOpen={showAddPersonModal}
                         onClose={() => setShowAddPersonModal(false)}
                         onAdd={handleAddPerson}
                         treeData={treeData}
                     />
-                    <AddMarriageModal 
+                    <AddMarriageModal
                         isOpen={showAddMarriageModal}
                         onClose={() => setShowAddMarriageModal(false)}
                         onAdd={handleAddMarriage}
+                        treeData={treeData}
+                    />
+                    <DeletePersonModal
+                        isOpen={showDeletePersonModal}
+                        onClose={() => setShowDeletePersonModal(false)}
+                        onDelete={handleDeletePerson}
+                        treeData={treeData}
+                    />
+                    <DeleteRelationshipModal
+                        isOpen={showDeleteRelationshipModal}
+                        onClose={() => setShowDeleteRelationshipModal(false)}
+                        onDelete={handleDeleteRelationship}
                         treeData={treeData}
                     />
                 </div>
