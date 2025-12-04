@@ -147,7 +147,8 @@ const FluidEdge = ({
     data = {},
     markerEnd,
     source,
-    target
+    target,
+    selected
 }) => {
     // For force-directed layout, draw straight lines from center to center
     // sourceX, sourceY, targetX, targetY are handle positions
@@ -191,13 +192,23 @@ const FluidEdge = ({
 
     // Determine if this is a marriage edge (parent to marriage) or child edge (marriage to child)
     const isMarriageEdge = data.type === 'marriage';
+
+    // Check if this edge should be highlighted
+    // Highlight if edge connects to selectedPerson
+    const isHighlighted = data.selectedPerson && (
+        data.parent1Id === data.selectedPerson ||
+        data.parent2Id === data.selectedPerson ||
+        data.childId === data.selectedPerson
+    );
+
     const edgeClass = isMarriageEdge ? 'marriage-edge' : 'child-edge';
+    const highlightClass = isHighlighted ? 'highlighted' : '';
 
     return (
         <>
             <path
                 id={id}
-                className={`react-flow-edge-path ${edgeClass}`}
+                className={`react-flow-edge-path ${edgeClass} ${highlightClass}`}
                 d={path}
                 markerEnd={markerEnd}
                 style={style}
@@ -365,7 +376,11 @@ const calculateFluidLayout = (treeData, viewState = null) => {
             target: marriageNodeId,
             targetHandle: 'target-top',
             type: 'fluidEdge',
-            data: { type: 'marriage' },
+            data: {
+                type: 'marriage',
+                parent1Id,
+                parent2Id
+            },
         });
 
         edges.push({
@@ -375,7 +390,11 @@ const calculateFluidLayout = (treeData, viewState = null) => {
             target: marriageNodeId,
             targetHandle: 'target-top',
             type: 'fluidEdge',
-            data: { type: 'marriage' },
+            data: {
+                type: 'marriage',
+                parent1Id,
+                parent2Id
+            },
         });
 
         // Add edges from marriage node to children
@@ -387,7 +406,12 @@ const calculateFluidLayout = (treeData, viewState = null) => {
                 target: childId,
                 targetHandle: 'target-top',
                 type: 'fluidEdge',
-                data: { type: 'child' },
+                data: {
+                    type: 'child',
+                    parent1Id,
+                    parent2Id,
+                    childId
+                },
             });
         });
     });
@@ -622,6 +646,29 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePosit
             getNodePositionsRef.current = () => nodes;
         }
     }, [nodes, getNodePositionsRef]);
+
+    // Update nodes when selectedPerson changes to mark the selected node
+    React.useEffect(() => {
+        setNodes(currentNodes =>
+            currentNodes.map(node => ({
+                ...node,
+                selected: node.id === selectedPerson
+            }))
+        );
+    }, [selectedPerson, setNodes]);
+
+    // Update edges when selectedPerson changes to inject selectedPerson into edge data
+    React.useEffect(() => {
+        setEdges(currentEdges =>
+            currentEdges.map(edge => ({
+                ...edge,
+                data: {
+                    ...edge.data,
+                    selectedPerson
+                }
+            }))
+        );
+    }, [selectedPerson, setEdges]);
 
     // Update nodes and edges when treeData changes (person added/removed/modified)
     React.useEffect(() => {

@@ -191,6 +191,7 @@
     stroke-width: 2.5;
     fill: none;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0.4;
 }
 
 /* Marriage edges (parent to marriage node) */
@@ -211,6 +212,18 @@
     stroke-linecap: round;
     stroke-linejoin: round;
     animation: dash-flow 6s linear infinite;
+}
+
+/* Highlighted edges when person is selected */
+.react-flow-edge-path.highlighted {
+    opacity: 1 !important;
+    stroke-width: 6 !important;
+    filter: drop-shadow(0 0 8px currentColor);
+}
+
+/* Show all edges at full opacity when nothing is selected */
+.react-flow__edges:not(:has(.highlighted)) .react-flow-edge-path {
+    opacity: 1;
 }
 
 /* Hover effects */
