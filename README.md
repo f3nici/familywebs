@@ -1,6 +1,6 @@
-# `familytree`
+# Family Webs
 
-**familytree** is a browser-based visual family tree builder inspired by FamilyBushes. It renders clean relationship maps, supports fluid layouts, and handles complex structures like remarriages, step-families and half-siblings. Trees are stored as JSON and can be imported and exported freely.
+**Family Webs** is a browser-based visual family tree builder inspired by FamilyBushes. It renders clean relationship maps, supports fluid layouts, and handles complex structures like remarriages, step-families and half-siblings. Trees are stored as JSON and can be imported and exported freely.
 
 This tool must be **served over HTTP** because browsers block module loading when opened via `file://`.
 
