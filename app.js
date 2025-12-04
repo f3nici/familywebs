@@ -521,29 +521,6 @@
             const [spouse2Search, setSpouse2Search] = useState('');
             const [childrenSearch, setChildrenSearch] = useState('');
 
-            if (!isOpen) return null;
-
-            const handleSubmit = () => {
-                if (spouse1 && spouse2 && spouse1 !== spouse2) {
-                    onAdd(spouse1, spouse2, selectedChildren);
-                    setSpouse1('');
-                    setSpouse2('');
-                    setSelectedChildren([]);
-                    setSpouse1Search('');
-                    setSpouse2Search('');
-                    setChildrenSearch('');
-                    onClose();
-                }
-            };
-
-            const toggleChild = (childId) => {
-                setSelectedChildren(prev =>
-                    prev.includes(childId)
-                        ? prev.filter(id => id !== childId)
-                        : [...prev, childId]
-                );
-            };
-
             // Filter people based on search
             const filteredSpouse1Options = useMemo(() => {
                 return Object.entries(treeData.people).filter(([id, person]) => {
@@ -569,6 +546,29 @@
                         return fullName.includes(childrenSearch.toLowerCase());
                     });
             }, [treeData.people, spouse1, spouse2, childrenSearch]);
+
+            if (!isOpen) return null;
+
+            const handleSubmit = () => {
+                if (spouse1 && spouse2 && spouse1 !== spouse2) {
+                    onAdd(spouse1, spouse2, selectedChildren);
+                    setSpouse1('');
+                    setSpouse2('');
+                    setSelectedChildren([]);
+                    setSpouse1Search('');
+                    setSpouse2Search('');
+                    setChildrenSearch('');
+                    onClose();
+                }
+            };
+
+            const toggleChild = (childId) => {
+                setSelectedChildren(prev =>
+                    prev.includes(childId)
+                        ? prev.filter(id => id !== childId)
+                        : [...prev, childId]
+                );
+            };
 
             return (
                 <div className="modal-overlay" onClick={onClose}>
@@ -681,6 +681,13 @@
             const [searchQuery, setSearchQuery] = useState('');
             const [selectedPerson, setSelectedPerson] = useState('');
 
+            const filteredPeople = useMemo(() => {
+                return Object.entries(treeData.people).filter(([id, person]) => {
+                    const fullName = `${person.name} ${person.surname}`.toLowerCase();
+                    return fullName.includes(searchQuery.toLowerCase());
+                });
+            }, [treeData.people, searchQuery]);
+
             if (!isOpen) return null;
 
             const handleSubmit = () => {
@@ -691,13 +698,6 @@
                     onClose();
                 }
             };
-
-            const filteredPeople = useMemo(() => {
-                return Object.entries(treeData.people).filter(([id, person]) => {
-                    const fullName = `${person.name} ${person.surname}`.toLowerCase();
-                    return fullName.includes(searchQuery.toLowerCase());
-                });
-            }, [treeData.people, searchQuery]);
 
             return (
                 <div className="modal-overlay" onClick={onClose}>
@@ -768,17 +768,6 @@
             const [searchQuery, setSearchQuery] = useState('');
             const [selectedRelationship, setSelectedRelationship] = useState(-1);
 
-            if (!isOpen) return null;
-
-            const handleSubmit = () => {
-                if (selectedRelationship >= 0) {
-                    onDelete(selectedRelationship);
-                    setSelectedRelationship(-1);
-                    setSearchQuery('');
-                    onClose();
-                }
-            };
-
             const relationshipsList = useMemo(() => {
                 return treeData.mariages.map((marriage, index) => {
                     if (marriage.length < 2) return null;
@@ -814,6 +803,17 @@
                     rel.searchText.includes(searchQuery.toLowerCase())
                 );
             }, [relationshipsList, searchQuery]);
+
+            if (!isOpen) return null;
+
+            const handleSubmit = () => {
+                if (selectedRelationship >= 0) {
+                    onDelete(selectedRelationship);
+                    setSelectedRelationship(-1);
+                    setSearchQuery('');
+                    onClose();
+                }
+            };
 
             return (
                 <div className="modal-overlay" onClick={onClose}>
