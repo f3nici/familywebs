@@ -547,6 +547,12 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
                         const avatarClass = person.gender === 'MALE' ? 'avatar-male' :
                                           person.gender === 'FEMALE' ? 'avatar-female' : 'avatar-other';
 
+                        // Calculate relationship to home person
+                        const isHomePerson = treeData.homePerson === personId;
+                        const relationship = treeData.homePerson && treeData.homePerson !== personId && window.calculateRelationship
+                            ? window.calculateRelationship(treeData.homePerson, personId, treeData)
+                            : null;
+
                         return (
                             <div
                                 key={personId}
@@ -566,8 +572,25 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
                                 <div className={`node-avatar ${avatarClass}`}>
                                     {getInitials(person.name)}
                                 </div>
-                                <div className="node-name">{person.name}</div>
+                                <div className="node-name">
+                                    {person.name}
+                                    {isHomePerson && (
+                                        <span style={{marginLeft: '6px', fontSize: '0.85em'}} title="Home Person">
+                                            🏠
+                                        </span>
+                                    )}
+                                </div>
                                 <div className="node-surname">{person.surname}</div>
+                                {relationship && (
+                                    <div style={{
+                                        fontSize: '0.75rem',
+                                        color: 'var(--primary)',
+                                        fontWeight: '500',
+                                        marginTop: '4px'
+                                    }}>
+                                        {relationship}
+                                    </div>
+                                )}
                                 <div className="node-dates">
                                     {birthEvent?.dateStart && formatDate(birthEvent.dateStart)}
                                     {birthEvent?.dateStart && deathEvent?.dateStart && ' — '}
