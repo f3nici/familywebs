@@ -65,8 +65,25 @@ const PersonNode = ({ data, selected }) => {
             <div className={`node-avatar-small ${avatarClass}`}>
                 {getInitials(data.person?.name)}
             </div>
-            <div className="node-name-small">{data.person?.name}</div>
+            <div className="node-name-small">
+                {data.person?.name}
+                {data.isHomePerson && (
+                    <span style={{marginLeft: '6px', fontSize: '0.85em'}} title="Home Person">
+                        🏠
+                    </span>
+                )}
+            </div>
             <div className="node-surname-small">{data.person?.surname}</div>
+            {data.relationship && (
+                <div style={{
+                    fontSize: '0.7rem',
+                    color: 'var(--primary)',
+                    fontWeight: '500',
+                    marginTop: '2px'
+                }}>
+                    {data.relationship}
+                </div>
+            )}
             {(birthEvent?.dateStart || deathEvent?.dateStart) && (
                 <div className="node-dates-small">
                     {birthEvent?.dateStart && formatDate(birthEvent.dateStart)}
@@ -315,6 +332,12 @@ const calculateFluidLayout = (treeData, viewState = null) => {
                 ? savedPositions[personId]
                 : { x: currentX, y: currentY };
 
+            // Calculate relationship to home person
+            const isHomePerson = treeData.homePerson === personId;
+            const relationship = treeData.homePerson && treeData.homePerson !== personId && window.calculateRelationship
+                ? window.calculateRelationship(treeData.homePerson, personId, treeData)
+                : null;
+
             // Add person node
             nodes.push({
                 id: personId,
@@ -323,7 +346,9 @@ const calculateFluidLayout = (treeData, viewState = null) => {
                 data: {
                     person,
                     personId,
-                    onClick: () => {}
+                    onClick: () => {},
+                    isHomePerson,
+                    relationship
                 },
             });
 

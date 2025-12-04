@@ -20,6 +20,7 @@
             list: '☰',
             grid: '⊞',
             eye: '👁',
+            home: '🏠',
         };
 
         // Utility Functions
@@ -50,6 +51,240 @@
             return Math.random().toString(36).substr(2, 9);
         };
 
+        // Relationship Calculator
+        // Expose it globally so it can be used by FluidTreeWithReactFlow and GenerationalView
+        const calculateRelationship = (fromPersonId, toPersonId, treeData) => {
+            if (fromPersonId === toPersonId) return 'Self';
+            if (!treeData.people[fromPersonId] || !treeData.people[toPersonId]) return null;
+
+            // Build family maps
+            const parentMap = new Map(); // personId -> [parent1Id, parent2Id]
+            const childrenMap = new Map(); // personId -> [child1Id, child2Id, ...]
+            const spouseMap = new Map(); // personId -> [spouse1Id, spouse2Id, ...]
+
+            treeData.mariages.forEach(marriage => {
+                if (marriage.length < 2) return;
+                const [parent1, parent2, ...children] = marriage;
+
+                // Track spouses
+                if (parent1 && parent2) {
+                    if (!spouseMap.has(parent1)) spouseMap.set(parent1, []);
+                    if (!spouseMap.has(parent2)) spouseMap.set(parent2, []);
+                    if (!spouseMap.get(parent1).includes(parent2)) spouseMap.get(parent1).push(parent2);
+                    if (!spouseMap.get(parent2).includes(parent1)) spouseMap.get(parent2).push(parent1);
+                }
+
+                // Track parent-child relationships
+                children.forEach(childId => {
+                    if (!parentMap.has(childId)) {
+                        parentMap.set(childId, [parent1, parent2].filter(Boolean));
+                    }
+                    if (parent1) {
+                        if (!childrenMap.has(parent1)) childrenMap.set(parent1, []);
+                        if (!childrenMap.get(parent1).includes(childId)) childrenMap.get(parent1).push(childId);
+                    }
+                    if (parent2) {
+                        if (!childrenMap.has(parent2)) childrenMap.set(parent2, []);
+                        if (!childrenMap.get(parent2).includes(childId)) childrenMap.get(parent2).push(childId);
+                    }
+                });
+            });
+
+            // Check direct relationships first
+            // Spouse
+            if (spouseMap.get(fromPersonId)?.includes(toPersonId)) {
+                return 'Spouse';
+            }
+
+            // Parent
+            if (parentMap.get(fromPersonId)?.includes(toPersonId)) {
+                return 'Parent';
+            }
+
+            // Child
+            if (childrenMap.get(fromPersonId)?.includes(toPersonId)) {
+                return 'Child';
+            }
+
+            // Sibling
+            const fromParents = parentMap.get(fromPersonId);
+            const toParents = parentMap.get(toPersonId);
+            if (fromParents && toParents && fromParents.some(p => toParents.includes(p))) {
+                return 'Sibling';
+            }
+
+            // Step-sibling (children of step-parent)
+            // Check if any of fromPerson's parents are married to any of toPerson's parents
+            // but they don't share a biological parent
+            if (fromParents && toParents && !fromParents.some(p => toParents.includes(p))) {
+                // They don't share a parent, check if their parents are married
+                for (const fromParent of fromParents) {
+                    const fromParentSpouses = spouseMap.get(fromParent) || [];
+                    for (const toParent of toParents) {
+                        if (fromParentSpouses.includes(toParent)) {
+                            return 'Step-sibling';
+                        }
+                    }
+                }
+            }
+
+            // Find path through ancestors
+            const getAncestors = (personId, generations = 0, maxGen = 10) => {
+                const ancestors = [{ id: personId, generation: generations }];
+                if (generations >= maxGen) return ancestors;
+
+                const parents = parentMap.get(personId);
+                if (parents) {
+                    parents.forEach(parentId => {
+                        if (parentId) {
+                            ancestors.push(...getAncestors(parentId, generations + 1, maxGen));
+                        }
+                    });
+                }
+                return ancestors;
+            };
+
+            const fromAncestors = getAncestors(fromPersonId);
+            const toAncestors = getAncestors(toPersonId);
+
+            // Find common ancestor
+            for (const fromAnc of fromAncestors) {
+                for (const toAnc of toAncestors) {
+                    if (fromAnc.id === toAnc.id && fromAnc.generation > 0) {
+                        const commonAncestor = fromAnc.id;
+                        const fromGen = fromAnc.generation;
+                        const toGen = toAnc.generation;
+
+                        // Check if one is ancestor of the other
+                        if (fromGen === 0) {
+                            // fromPerson is the common ancestor, so toPerson is a descendant of fromPerson
+                            if (toGen === 1) return 'Child';
+                            if (toGen === 2) return 'Grandchild';
+                            if (toGen === 3) return 'Great-grandchild';
+                            return `${toGen - 2}x Great-grandchild`;
+                        }
+                        if (toGen === 0) {
+                            // toPerson is the common ancestor, so toPerson is an ancestor of fromPerson
+                            if (fromGen === 1) return 'Parent';
+                            if (fromGen === 2) return 'Grandparent';
+                            if (fromGen === 3) return 'Great-grandparent';
+                            return `${fromGen - 2}x Great-grandparent`;
+                        }
+
+                        // Cousins and extended family
+                        if (fromGen === 1 && toGen === 1) {
+                            // Same generation, one generation down from common ancestor
+                            // Already handled as siblings above
+                            continue;
+                        }
+
+                        if (fromGen === 2 && toGen === 1) {
+                            // toPerson is parent's sibling
+                            const toGender = treeData.people[toPersonId]?.gender;
+                            if (toGender === 'MALE') return 'Uncle';
+                            if (toGender === 'FEMALE') return 'Aunt';
+                            return 'Aunt/Uncle';
+                        }
+
+                        if (fromGen === 1 && toGen === 2) {
+                            // fromPerson is sibling of toPerson's parent
+                            const fromGender = treeData.people[fromPersonId]?.gender;
+                            if (fromGender === 'MALE') return 'Nephew';
+                            if (fromGender === 'FEMALE') return 'Niece';
+                            return 'Niece/Nephew';
+                        }
+
+                        if (fromGen === toGen && fromGen >= 2) {
+                            // Cousins - same generation
+                            const cousinDegree = fromGen - 1;
+                            if (cousinDegree === 1) return '1st Cousin';
+                            if (cousinDegree === 2) return '2nd Cousin';
+                            if (cousinDegree === 3) return '3rd Cousin';
+                            return `${cousinDegree}th Cousin`;
+                        }
+
+                        if (fromGen !== toGen && Math.min(fromGen, toGen) >= 2) {
+                            // Cousins removed
+                            const minGen = Math.min(fromGen, toGen);
+                            const maxGen = Math.max(fromGen, toGen);
+                            const cousinDegree = minGen - 1;
+                            const timesRemoved = maxGen - minGen;
+
+                            let degreeSuffix = 'th';
+                            if (cousinDegree === 1) degreeSuffix = 'st';
+                            else if (cousinDegree === 2) degreeSuffix = 'nd';
+                            else if (cousinDegree === 3) degreeSuffix = 'rd';
+
+                            return `${cousinDegree}${degreeSuffix} Cousin ${timesRemoved}x Removed`;
+                        }
+
+                        // Great-aunt/uncle or great-niece/nephew
+                        if (fromGen > toGen && toGen === 1) {
+                            const greats = fromGen - 2;
+                            const toGender = treeData.people[toPersonId]?.gender;
+                            if (greats === 1) {
+                                if (toGender === 'MALE') return 'Great-uncle';
+                                if (toGender === 'FEMALE') return 'Great-aunt';
+                                return 'Great-aunt/uncle';
+                            }
+                            const prefix = greats > 1 ? `${greats - 1}x Great-` : '';
+                            if (toGender === 'MALE') return `${prefix}Great-uncle`;
+                            if (toGender === 'FEMALE') return `${prefix}Great-aunt`;
+                            return `${prefix}Great-aunt/uncle`;
+                        }
+
+                        if (toGen > fromGen && fromGen === 1) {
+                            const greats = toGen - 2;
+                            const fromGender = treeData.people[fromPersonId]?.gender;
+                            if (greats === 1) {
+                                if (fromGender === 'MALE') return 'Great-nephew';
+                                if (fromGender === 'FEMALE') return 'Great-niece';
+                                return 'Great-niece/nephew';
+                            }
+                            const prefix = greats > 1 ? `${greats - 1}x Great-` : '';
+                            if (fromGender === 'MALE') return `${prefix}Great-nephew`;
+                            if (fromGender === 'FEMALE') return `${prefix}Great-niece`;
+                            return `${prefix}Great-niece/nephew`;
+                        }
+                    }
+                }
+            }
+
+            // Check in-law relationships
+            const fromSpouses = spouseMap.get(fromPersonId) || [];
+            const toSpouses = spouseMap.get(toPersonId) || [];
+
+            // Check if toPerson is spouse's family
+            for (const spouseId of fromSpouses) {
+                if (parentMap.get(spouseId)?.includes(toPersonId)) {
+                    return 'Parent-in-law';
+                }
+                if (childrenMap.get(spouseId)?.includes(toPersonId)) {
+                    return 'Step-child';
+                }
+                const spouseParents = parentMap.get(spouseId);
+                const toParentsCheck = parentMap.get(toPersonId);
+                if (spouseParents && toParentsCheck && spouseParents.some(p => toParentsCheck.includes(p))) {
+                    return 'Sibling-in-law';
+                }
+            }
+
+            // Check if fromPerson is spouse's family
+            for (const spouseId of toSpouses) {
+                if (parentMap.get(spouseId)?.includes(fromPersonId)) {
+                    return 'Child-in-law';
+                }
+                if (childrenMap.get(spouseId)?.includes(fromPersonId)) {
+                    return 'Step-parent';
+                }
+            }
+
+            return 'Distant Relative';
+        };
+
+        // Make calculateRelationship available globally for use by other components
+        window.calculateRelationship = calculateRelationship;
+
         // Initial empty tree data
         const emptyTreeData = {
             id: generateId(),
@@ -64,20 +299,21 @@
             ],
             attributes: [],
             people: {},
-            mariages: []
+            mariages: [],
+            homePerson: null
         };
 
         // Person Card Component
-        const PersonCard = ({ person, personId, isSelected, onClick, isEditMode, compact = false }) => {
+        const PersonCard = ({ person, personId, isSelected, onClick, isEditMode, compact = false, isHomePerson = false, relationship = null }) => {
             const birthEvent = person.events?.find(e => e.type === '$_BIRTH');
             const deathEvent = person.events?.find(e => e.type === '$_DEATH');
             const isDeceased = !!deathEvent;
-            
-            const avatarClass = person.gender === 'MALE' ? 'avatar-male' : 
+
+            const avatarClass = person.gender === 'MALE' ? 'avatar-male' :
                               person.gender === 'FEMALE' ? 'avatar-female' : 'avatar-other';
 
             return (
-                <div 
+                <div
                     className={`tree-node ${isSelected ? 'selected' : ''} ${isDeceased ? 'deceased' : ''}`}
                     onClick={() => onClick(personId)}
                     style={compact ? { minWidth: '140px', padding: '16px 20px' } : {}}
@@ -85,8 +321,25 @@
                     <div className={`node-avatar ${avatarClass}`} style={compact ? { width: '50px', height: '50px', fontSize: '1.2rem' } : {}}>
                         {getInitials(person.name)}
                     </div>
-                    <div className="node-name">{person.name}</div>
+                    <div className="node-name">
+                        {person.name}
+                        {isHomePerson && (
+                            <span style={{marginLeft: '6px', fontSize: '0.85em'}} title="Home Person">
+                                {Icons.home}
+                            </span>
+                        )}
+                    </div>
                     <div className="node-surname">{person.surname}</div>
+                    {relationship && (
+                        <div style={{
+                            fontSize: '0.75rem',
+                            color: 'var(--primary)',
+                            fontWeight: '500',
+                            marginTop: '4px'
+                        }}>
+                            {relationship}
+                        </div>
+                    )}
                     <div className="node-dates">
                         {birthEvent?.dateStart && formatDate(birthEvent.dateStart)}
                         {birthEvent?.dateStart && deathEvent?.dateStart && ' — '}
@@ -97,17 +350,17 @@
         };
 
         // Person List Item
-        const PersonListItem = ({ person, personId, isSelected, onClick }) => {
+        const PersonListItem = ({ person, personId, isSelected, onClick, isHomePerson, relationship, onSetHomePerson }) => {
             const birthEvent = person.events?.find(e => e.type === '$_BIRTH');
             const deathEvent = person.events?.find(e => e.type === '$_DEATH');
-            
-            const avatarClass = person.gender === 'MALE' ? 'avatar-male' : 
+
+            const avatarClass = person.gender === 'MALE' ? 'avatar-male' :
                               person.gender === 'FEMALE' ? 'avatar-female' : 'avatar-other';
 
             const age = getAge(birthEvent?.dateStart, deathEvent?.dateStart);
 
             return (
-                <div 
+                <div
                     className={`person-item ${isSelected ? 'selected' : ''}`}
                     onClick={() => onClick(personId)}
                 >
@@ -115,12 +368,37 @@
                         {getInitials(person.name)}
                     </div>
                     <div className="person-info">
-                        <div className="person-name">{person.name} {person.surname}</div>
+                        <div className="person-name">
+                            {person.name} {person.surname}
+                            {isHomePerson && (
+                                <span style={{marginLeft: '8px', fontSize: '0.9rem'}} title="Home Person">
+                                    {Icons.home}
+                                </span>
+                            )}
+                        </div>
                         <div className="person-dates">
+                            {relationship && (
+                                <span style={{color: 'var(--primary)', fontWeight: '500', marginRight: '8px'}}>
+                                    {relationship} •
+                                </span>
+                            )}
                             {birthEvent?.dateStart ? formatDate(birthEvent.dateStart) : 'Birth unknown'}
                             {age !== null && ` • ${age} ${deathEvent ? 'years old at death' : 'years old'}`}
                         </div>
                     </div>
+                    {onSetHomePerson && (
+                        <button
+                            className="btn btn-ghost btn-icon"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onSetHomePerson(personId);
+                            }}
+                            title={isHomePerson ? "Unset as home person" : "Set as home person"}
+                            style={{marginLeft: 'auto', fontSize: '1.2rem'}}
+                        >
+                            {Icons.home}
+                        </button>
+                    )}
                 </div>
             );
         };
@@ -136,8 +414,14 @@
             const birthEvent = person.events?.find(e => e.type === '$_BIRTH');
             const deathEvent = person.events?.find(e => e.type === '$_DEATH');
             
-            const avatarClass = person.gender === 'MALE' ? 'avatar-male' : 
+            const avatarClass = person.gender === 'MALE' ? 'avatar-male' :
                               person.gender === 'FEMALE' ? 'avatar-female' : 'avatar-other';
+
+            // Calculate relationship to home person
+            const relationshipToHome = useMemo(() => {
+                if (!treeData.homePerson || treeData.homePerson === personId) return null;
+                return calculateRelationship(treeData.homePerson, personId, treeData);
+            }, [treeData, personId]);
 
             // Find relationships
             const relationships = useMemo(() => {
@@ -218,12 +502,26 @@
                             </div>
                             <h2 className="detail-title">{person.name}</h2>
                             <p className="detail-subtitle">{person.surname}</p>
+                            {relationshipToHome && (
+                                <p style={{
+                                    marginTop: '8px',
+                                    padding: '4px 12px',
+                                    background: 'var(--bg-selected)',
+                                    borderRadius: '12px',
+                                    fontSize: '0.85rem',
+                                    color: 'var(--primary)',
+                                    fontWeight: '500',
+                                    display: 'inline-block'
+                                }}>
+                                    {relationshipToHome} to {treeData.people[treeData.homePerson]?.name}
+                                </p>
+                            )}
                         </div>
                         <button className="btn btn-ghost btn-icon" onClick={onClose}>
                             {Icons.close}
                         </button>
                     </div>
-                    
+
                     <div className="detail-content">
                         {isEditMode ? (
                             <>
@@ -1165,6 +1463,14 @@
                 });
             };
 
+            const handleSetHomePerson = (personId) => {
+                setTreeData(prev => ({
+                    ...prev,
+                    updatedAt: new Date().toISOString(),
+                    homePerson: personId === prev.homePerson ? null : personId
+                }));
+            };
+
 
             // Welcome screen if no data loaded
             if (!treeData) {
@@ -1210,7 +1516,23 @@
                             <span className="logo-text">Family Webs</span>
                         </div>
                         
-                        <div className="tree-name">{treeData.name}</div>
+                        <div className="tree-name">
+                            {treeData.name}
+                            {treeData.homePerson && treeData.people[treeData.homePerson] && (
+                                <div style={{
+                                    display: 'inline-block',
+                                    marginLeft: '16px',
+                                    padding: '4px 12px',
+                                    background: 'var(--bg-selected)',
+                                    borderRadius: '12px',
+                                    fontSize: '0.8rem',
+                                    color: 'var(--primary)',
+                                    fontWeight: '500'
+                                }}>
+                                    {Icons.home} Home: {treeData.people[treeData.homePerson].name} {treeData.people[treeData.homePerson].surname}
+                                </div>
+                            )}
+                        </div>
 
                         <div className="header-actions">
                             {/* View Mode Toggle */}
@@ -1273,15 +1595,25 @@
                             </div>
                             
                             <div className="people-list">
-                                {filteredPeople.map(([personId, person]) => (
-                                    <PersonListItem 
-                                        key={personId}
-                                        person={person}
-                                        personId={personId}
-                                        isSelected={selectedPerson === personId}
-                                        onClick={setSelectedPerson}
-                                    />
-                                ))}
+                                {filteredPeople.map(([personId, person]) => {
+                                    const isHomePerson = treeData.homePerson === personId;
+                                    const relationship = treeData.homePerson && treeData.homePerson !== personId
+                                        ? calculateRelationship(treeData.homePerson, personId, treeData)
+                                        : null;
+
+                                    return (
+                                        <PersonListItem
+                                            key={personId}
+                                            person={person}
+                                            personId={personId}
+                                            isSelected={selectedPerson === personId}
+                                            onClick={setSelectedPerson}
+                                            isHomePerson={isHomePerson}
+                                            relationship={relationship}
+                                            onSetHomePerson={handleSetHomePerson}
+                                        />
+                                    );
+                                })}
                                 
                                 {filteredPeople.length === 0 && (
                                     <div className="empty-state" style={{padding: '40px 20px'}}>
