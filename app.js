@@ -1171,12 +1171,12 @@
                 return (
                     <div className="app-container">
                         <div className="welcome-screen">
-                            <div className="logo-icon" style={{width: '80px', height: '80px', fontSize: '40px', marginBottom: '24px'}}>
-                                {Icons.tree}
+                            <div className="logo-icon" style={{width: '120px', height: '120px', marginBottom: '24px'}}>
+                                <img src="assets/logo.svg" alt="Family Webs" style={{width: '100%', height: '100%', objectFit: 'contain'}} />
                             </div>
-                            <h1 className="welcome-title">Family Roots</h1>
+                            <h1 className="welcome-title">Family Webs</h1>
                             <p className="welcome-subtitle">
-                                Create beautiful, interactive family trees that capture the complex relationships 
+                                Create beautiful, interactive family trees that capture the complex relationships
                                 of your family including remarriages, half-siblings, and step-families.
                             </p>
                             <div className="welcome-actions">
@@ -1204,8 +1204,10 @@
                     {/* Header */}
                     <header className="header">
                         <div className="logo">
-                            <div className="logo-icon">{Icons.tree}</div>
-                            <span className="logo-text">Family Roots</span>
+                            <div className="logo-icon">
+                                <img src="assets/logo.svg" alt="Family Webs" style={{width: '40px', height: '40px', objectFit: 'contain'}} />
+                            </div>
+                            <span className="logo-text">Family Webs</span>
                         </div>
                         
                         <div className="tree-name">{treeData.name}</div>
