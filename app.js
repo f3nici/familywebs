@@ -1483,6 +1483,18 @@
                     }
                 }
 
+                // Clean up people data - remove unused fields
+                const cleanedPeople = {};
+                Object.entries(dataToExport.people).forEach(([id, person]) => {
+                    const { surnameAssumed, surnameAssmed, photos, attachments, ...cleanPerson } = person;
+                    cleanedPeople[id] = cleanPerson;
+                });
+                dataToExport.people = cleanedPeople;
+
+                // Remove unused top-level fields
+                delete dataToExport.events;
+                delete dataToExport.credits;
+
                 const dataStr = JSON.stringify(dataToExport, null, 2);
                 const blob = new Blob([dataStr], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
