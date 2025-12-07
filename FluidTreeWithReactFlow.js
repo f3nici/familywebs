@@ -184,15 +184,16 @@ const FluidEdge = ({
     const isTargetMarriage = target?.includes('marriage') || false;
 
     // Adjust source position to center
+    // Note: Handles are offset by 6px (top: -6px, bottom: -6px in CSS)
     let adjustedSourceX = sourceX;
     let adjustedSourceY = sourceY;
 
     if (sourcePosition === Position.Bottom) {
-        // Handle is at bottom, move up to center
-        adjustedSourceY = sourceY - (isSourceMarriage ? marriageNodeSize / 2 : personNodeHeight / 2);
+        // Handle is at bottom + 6px, move up to center
+        adjustedSourceY = sourceY - (isSourceMarriage ? marriageNodeSize / 2 : personNodeHeight / 2) - 6;
     } else if (sourcePosition === Position.Top) {
-        // Handle is at top, move down to center
-        adjustedSourceY = sourceY + (isSourceMarriage ? marriageNodeSize / 2 : personNodeHeight / 2);
+        // Handle is at top - 6px, move down to center
+        adjustedSourceY = sourceY + (isSourceMarriage ? marriageNodeSize / 2 : personNodeHeight / 2) + 6;
     }
 
     // Adjust target position to center
@@ -200,11 +201,11 @@ const FluidEdge = ({
     let adjustedTargetY = targetY;
 
     if (targetPosition === Position.Bottom) {
-        // Handle is at bottom, move up to center
-        adjustedTargetY = targetY - (isTargetMarriage ? marriageNodeSize / 2 : personNodeHeight / 2);
+        // Handle is at bottom + 6px, move up to center
+        adjustedTargetY = targetY - (isTargetMarriage ? marriageNodeSize / 2 : personNodeHeight / 2) - 6;
     } else if (targetPosition === Position.Top) {
-        // Handle is at top, move down to center
-        adjustedTargetY = targetY + (isTargetMarriage ? marriageNodeSize / 2 : personNodeHeight / 2);
+        // Handle is at top - 6px, move down to center
+        adjustedTargetY = targetY + (isTargetMarriage ? marriageNodeSize / 2 : personNodeHeight / 2) + 6;
     }
 
     // Draw straight line from center to center
