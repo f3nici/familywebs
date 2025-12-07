@@ -1061,10 +1061,16 @@
             );
         };
 
-        // Delete Relationship Modal
-        const DeleteRelationshipModal = ({ isOpen, onClose, onDelete, treeData }) => {
+        // Edit Relationship Modal
+        const EditRelationshipModal = ({ isOpen, onClose, onUpdate, onDelete, treeData }) => {
             const [searchQuery, setSearchQuery] = useState('');
             const [selectedRelationship, setSelectedRelationship] = useState(-1);
+            const [editedSpouse1, setEditedSpouse1] = useState('');
+            const [editedSpouse2, setEditedSpouse2] = useState('');
+            const [editedChildren, setEditedChildren] = useState([]);
+            const [spouse1Search, setSpouse1Search] = useState('');
+            const [spouse2Search, setSpouse2Search] = useState('');
+            const [childrenSearch, setChildrenSearch] = useState('');
 
             const relationshipsList = useMemo(() => {
                 return treeData.mariages.map((marriage, index) => {
@@ -1102,33 +1108,96 @@
                 );
             }, [relationshipsList, searchQuery]);
 
+            // Filter people for spouse selection
+            const filteredSpouse1Options = useMemo(() => {
+                return Object.entries(treeData.people).filter(([id, person]) => {
+                    const fullName = `${person.name} ${person.surname}`.toLowerCase();
+                    return fullName.includes(spouse1Search.toLowerCase());
+                });
+            }, [treeData.people, spouse1Search]);
+
+            const filteredSpouse2Options = useMemo(() => {
+                return Object.entries(treeData.people)
+                    .filter(([id]) => id !== editedSpouse1)
+                    .filter(([id, person]) => {
+                        const fullName = `${person.name} ${person.surname}`.toLowerCase();
+                        return fullName.includes(spouse2Search.toLowerCase());
+                    });
+            }, [treeData.people, editedSpouse1, spouse2Search]);
+
+            const filteredChildrenOptions = useMemo(() => {
+                return Object.entries(treeData.people)
+                    .filter(([id]) => id !== editedSpouse1 && id !== editedSpouse2)
+                    .filter(([id, person]) => {
+                        const fullName = `${person.name} ${person.surname}`.toLowerCase();
+                        return fullName.includes(childrenSearch.toLowerCase());
+                    });
+            }, [treeData.people, editedSpouse1, editedSpouse2, childrenSearch]);
+
+            // When a relationship is selected, populate the edit fields
+            useEffect(() => {
+                if (selectedRelationship >= 0 && treeData.mariages[selectedRelationship]) {
+                    const marriage = treeData.mariages[selectedRelationship];
+                    setEditedSpouse1(marriage[0] || '');
+                    setEditedSpouse2(marriage[1] || '');
+                    setEditedChildren(marriage.slice(2));
+                } else {
+                    setEditedSpouse1('');
+                    setEditedSpouse2('');
+                    setEditedChildren([]);
+                }
+            }, [selectedRelationship, treeData.mariages]);
+
             if (!isOpen) return null;
 
-            const handleSubmit = () => {
+            const handleUpdate = () => {
+                if (selectedRelationship >= 0 && editedSpouse1 && editedSpouse2) {
+                    onUpdate(selectedRelationship, editedSpouse1, editedSpouse2, editedChildren);
+                    setSelectedRelationship(-1);
+                    setSearchQuery('');
+                    setSpouse1Search('');
+                    setSpouse2Search('');
+                    setChildrenSearch('');
+                    onClose();
+                }
+            };
+
+            const handleDelete = () => {
                 if (selectedRelationship >= 0) {
                     onDelete(selectedRelationship);
                     setSelectedRelationship(-1);
                     setSearchQuery('');
+                    setSpouse1Search('');
+                    setSpouse2Search('');
+                    setChildrenSearch('');
                     onClose();
                 }
+            };
+
+            const toggleChild = (childId) => {
+                setEditedChildren(prev =>
+                    prev.includes(childId)
+                        ? prev.filter(id => id !== childId)
+                        : [...prev, childId]
+                );
             };
 
             return (
                 <div className="modal-overlay" onClick={onClose}>
                     <div className="modal" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h2 className="modal-title">Delete Relationship</h2>
+                            <h2 className="modal-title">Edit Relationship</h2>
                             <button className="btn btn-ghost btn-icon" onClick={onClose}>
                                 {Icons.close}
                             </button>
                         </div>
                         <div className="modal-body">
                             <div className="form-group">
-                                <label className="form-label">Search Relationship</label>
+                                <label className="form-label">Select Relationship</label>
                                 <input
                                     type="text"
                                     className="form-input"
-                                    placeholder="Search relationship to delete..."
+                                    placeholder="Search relationship..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     style={{marginBottom: '8px'}}
@@ -1137,10 +1206,10 @@
                                     className="form-input form-select"
                                     value={selectedRelationship}
                                     onChange={(e) => setSelectedRelationship(Number(e.target.value))}
-                                    size="10"
-                                    style={{minHeight: '200px'}}
+                                    size="5"
+                                    style={{minHeight: '120px'}}
                                 >
-                                    <option value="-1">Select relationship to delete...</option>
+                                    <option value="-1">Select relationship to edit...</option>
                                     {filteredRelationships.map(rel => (
                                         <option key={rel.index} value={rel.index}>
                                             {rel.displayText}
@@ -1154,28 +1223,121 @@
                                 )}
                                 {relationshipsList.length === 0 && (
                                     <p style={{color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '8px'}}>
-                                        No relationships to delete
+                                        No relationships available
                                     </p>
                                 )}
                             </div>
+
                             {selectedRelationship >= 0 && (
-                                <div style={{padding: '12px', backgroundColor: 'var(--bg-warning)', borderRadius: '8px', marginTop: '16px'}}>
-                                    <p style={{color: 'var(--text-warning)', fontWeight: '500'}}>
-                                        ⚠️ Warning: This will permanently delete this relationship. People will not be deleted.
-                                    </p>
-                                </div>
+                                <>
+                                    <div style={{marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--border-subtle)'}}>
+                                        <h4 style={{fontFamily: 'var(--font-display)', marginBottom: '16px'}}>
+                                            Edit Partners
+                                        </h4>
+                                        <div className="form-group">
+                                            <label className="form-label">First Partner</label>
+                                            <input
+                                                type="text"
+                                                className="form-input"
+                                                placeholder="Search first partner..."
+                                                value={spouse1Search}
+                                                onChange={(e) => setSpouse1Search(e.target.value)}
+                                                style={{marginBottom: '8px'}}
+                                            />
+                                            <select
+                                                className="form-input form-select"
+                                                value={editedSpouse1}
+                                                onChange={(e) => setEditedSpouse1(e.target.value)}
+                                                size="5"
+                                            >
+                                                <option value="">Select person...</option>
+                                                {filteredSpouse1Options.map(([id, person]) => (
+                                                    <option key={id} value={id}>
+                                                        {person.name} {person.surname}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="form-group">
+                                            <label className="form-label">Second Partner</label>
+                                            <input
+                                                type="text"
+                                                className="form-input"
+                                                placeholder="Search second partner..."
+                                                value={spouse2Search}
+                                                onChange={(e) => setSpouse2Search(e.target.value)}
+                                                style={{marginBottom: '8px'}}
+                                            />
+                                            <select
+                                                className="form-input form-select"
+                                                value={editedSpouse2}
+                                                onChange={(e) => setEditedSpouse2(e.target.value)}
+                                                size="5"
+                                            >
+                                                <option value="">Select person...</option>
+                                                {filteredSpouse2Options.map(([id, person]) => (
+                                                    <option key={id} value={id}>
+                                                        {person.name} {person.surname}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        <div style={{marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--border-subtle)'}}>
+                                            <h4 style={{fontFamily: 'var(--font-display)', marginBottom: '16px'}}>
+                                                Children (Optional)
+                                            </h4>
+                                            <input
+                                                type="text"
+                                                className="form-input"
+                                                placeholder="Search children..."
+                                                value={childrenSearch}
+                                                onChange={(e) => setChildrenSearch(e.target.value)}
+                                                style={{marginBottom: '8px'}}
+                                            />
+                                            <div style={{maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--border-subtle)', borderRadius: '8px', padding: '8px'}}>
+                                                {filteredChildrenOptions.map(([id, person]) => (
+                                                    <label key={id} style={{display: 'flex', alignItems: 'center', padding: '8px', cursor: 'pointer', borderRadius: '4px', marginBottom: '4px', backgroundColor: editedChildren.includes(id) ? 'var(--bg-selected)' : 'transparent'}}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={editedChildren.includes(id)}
+                                                            onChange={() => toggleChild(id)}
+                                                            style={{marginRight: '8px'}}
+                                                        />
+                                                        <span>{person.name} {person.surname}</span>
+                                                    </label>
+                                                ))}
+                                                {filteredChildrenOptions.length === 0 && (
+                                                    <p style={{color: 'var(--text-muted)', fontStyle: 'italic', padding: '8px'}}>
+                                                        {childrenSearch ? 'No people match your search' : 'No other people available to select as children'}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </>
                             )}
                         </div>
                         <div className="modal-footer">
                             <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
-                            <button
-                                className="btn btn-danger"
-                                onClick={handleSubmit}
-                                disabled={selectedRelationship < 0}
-                                style={{backgroundColor: '#dc2626', color: 'white'}}
-                            >
-                                {Icons.trash} Delete Relationship
-                            </button>
+                            {selectedRelationship >= 0 && (
+                                <>
+                                    <button
+                                        className="btn btn-primary"
+                                        onClick={handleUpdate}
+                                        disabled={!editedSpouse1 || !editedSpouse2}
+                                    >
+                                        {Icons.edit} Update Relationship
+                                    </button>
+                                    <button
+                                        className="btn btn-danger"
+                                        onClick={handleDelete}
+                                        style={{backgroundColor: '#dc2626', color: 'white'}}
+                                    >
+                                        {Icons.trash} Delete
+                                    </button>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -1226,7 +1388,7 @@
             const [showAddPersonModal, setShowAddPersonModal] = useState(false);
             const [showAddMarriageModal, setShowAddMarriageModal] = useState(false);
             const [showDeletePersonModal, setShowDeletePersonModal] = useState(false);
-            const [showDeleteRelationshipModal, setShowDeleteRelationshipModal] = useState(false);
+            const [showEditRelationshipModal, setShowEditRelationshipModal] = useState(false);
             const [viewMode, setViewMode] = useState('web'); // 'web' or 'generational'
 
             const fileInputRef = useRef(null);
@@ -1448,6 +1610,19 @@
                 }
             };
 
+            const handleUpdateRelationship = (relationshipIndex, spouse1Id, spouse2Id, children = []) => {
+                setTreeData(prev => {
+                    const newMarriages = [...prev.mariages];
+                    newMarriages[relationshipIndex] = [spouse1Id, spouse2Id, ...children];
+
+                    return {
+                        ...prev,
+                        updatedAt: new Date().toISOString(),
+                        mariages: newMarriages
+                    };
+                });
+            };
+
             const handleDeleteRelationship = (relationshipIndex) => {
                 if (!confirm('Are you sure you want to delete this relationship?')) return;
 
@@ -1651,9 +1826,9 @@
                                     <button
                                         className="btn btn-secondary"
                                         style={{width: '100%'}}
-                                        onClick={() => setShowDeleteRelationshipModal(true)}
+                                        onClick={() => setShowEditRelationshipModal(true)}
                                     >
-                                        {Icons.trash} Delete Relationship
+                                        {Icons.edit} Edit Relationship
                                     </button>
                                 </div>
                             )}
@@ -1737,9 +1912,10 @@
                         onDelete={handleDeletePerson}
                         treeData={treeData}
                     />
-                    <DeleteRelationshipModal
-                        isOpen={showDeleteRelationshipModal}
-                        onClose={() => setShowDeleteRelationshipModal(false)}
+                    <EditRelationshipModal
+                        isOpen={showEditRelationshipModal}
+                        onClose={() => setShowEditRelationshipModal(false)}
+                        onUpdate={handleUpdateRelationship}
                         onDelete={handleDeleteRelationship}
                         treeData={treeData}
                     />
