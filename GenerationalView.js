@@ -6,7 +6,7 @@
 const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
     const { useMemo, useRef, useState, useCallback, useEffect } = React;
     const containerRef = useRef(null);
-    const [viewTransform, setViewTransform] = useState({ x: 100, y: 100, scale: 1 });
+    const [viewTransform, setViewTransform] = useState(null);
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const [initialZoomSet, setInitialZoomSet] = useState(false);
@@ -458,19 +458,19 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
             // Check if this marriage involves the selected person
             const isMarriageHighlighted = selectedPerson && (parent1Id === selectedPerson || parent2Id === selectedPerson);
 
-            // Connect from bottom of left parent to left side of marriage circle node
+            // Connect from bottom of left parent to center of marriage circle node
             lines.push({
                 key: `left-parent-to-marriage-${marriageIdx}`,
-                path: `M ${leftParent.x} ${leftParent.y} L ${leftParent.x} ${marriageNodePos.y} L ${marriageNodePos.x - 10} ${marriageNodePos.y}`,
+                path: `M ${leftParent.x} ${leftParent.y} L ${leftParent.x} ${marriageNodePos.y} L ${marriageNodePos.x} ${marriageNodePos.y}`,
                 type: 'marriage',
                 highlighted: isMarriageHighlighted,
                 relatedPeople: [parent1Id, parent2Id]
             });
 
-            // Connect from bottom of right parent to right side of marriage circle node
+            // Connect from bottom of right parent to center of marriage circle node
             lines.push({
                 key: `right-parent-to-marriage-${marriageIdx}`,
-                path: `M ${rightParent.x} ${rightParent.y} L ${rightParent.x} ${marriageNodePos.y} L ${marriageNodePos.x + 10} ${marriageNodePos.y}`,
+                path: `M ${rightParent.x} ${rightParent.y} L ${rightParent.x} ${marriageNodePos.y} L ${marriageNodePos.x} ${marriageNodePos.y}`,
                 type: 'marriage',
                 highlighted: isMarriageHighlighted,
                 relatedPeople: [parent1Id, parent2Id]
@@ -493,7 +493,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
 
                 lines.push({
                     key: `marriage-to-child-${marriageIdx}-${childIdx}`,
-                    path: `M ${marriageNodePos.x} ${marriageNodePos.y + 10} L ${marriageNodePos.x} ${intermediateY} L ${childCenterX} ${intermediateY} L ${childCenterX} ${childTopY}`,
+                    path: `M ${marriageNodePos.x} ${marriageNodePos.y} L ${marriageNodePos.x} ${intermediateY} L ${childCenterX} ${intermediateY} L ${childCenterX} ${childTopY}`,
                     type: 'parent',
                     highlighted: isParentChildHighlighted,
                     relatedPeople: [parent1Id, parent2Id, childId]
@@ -526,7 +526,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
     const handleWheel = useCallback((e) => {
         e.preventDefault();
 
-        if (!containerRef.current) return;
+        if (!containerRef.current || !viewTransform) return;
 
         const delta = e.deltaY > 0 ? 0.9 : 1.1;
         const newScale = Math.min(Math.max(0.1, viewTransform.scale * delta), 3);
@@ -706,20 +706,49 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
     // Auto zoom-to-fit on initial load and when switching to this view
     useEffect(() => {
         if (layout.positions.size > 0 && containerRef.current) {
-            // Reset the flag when layout changes (e.g., switching views)
-            setInitialZoomSet(false);
+            // Immediately calculate and set zoom-to-fit on layout changes
+            const { positions, marriageNodePositions } = layout;
+
+            // Get bounds of all cards
+            let minX = Infinity, maxX = -Infinity;
+            let minY = Infinity, maxY = -Infinity;
+
+            positions.forEach(pos => {
+                minX = Math.min(minX, pos.x);
+                maxX = Math.max(maxX, pos.x + pos.width);
+                minY = Math.min(minY, pos.y);
+                maxY = Math.max(maxY, pos.y + pos.height);
+            });
+
+            marriageNodePositions.forEach(pos => {
+                const halfSize = pos.size / 2;
+                minX = Math.min(minX, pos.x - halfSize);
+                maxX = Math.max(maxX, pos.x + halfSize);
+                minY = Math.min(minY, pos.y - halfSize);
+                maxY = Math.max(maxY, pos.y + halfSize);
+            });
+
+            const contentWidth = maxX - minX;
+            const contentHeight = maxY - minY;
+
+            // Get container dimensions
+            const containerRect = containerRef.current.getBoundingClientRect();
+            const viewportWidth = containerRect.width;
+            const viewportHeight = containerRect.height;
+
+            // Calculate scale to fit with padding
+            const padding = 100;
+            const scaleX = (viewportWidth - padding * 2) / contentWidth;
+            const scaleY = (viewportHeight - padding * 2) / contentHeight;
+            const scale = Math.min(scaleX, scaleY, 1);
+
+            // Calculate center offset
+            const x = (viewportWidth - contentWidth * scale) / 2 - minX * scale;
+            const y = (viewportHeight - contentHeight * scale) / 2 - minY * scale;
+
+            setViewTransform({ x, y, scale });
         }
     }, [layout]);
-
-    useEffect(() => {
-        if (!initialZoomSet && layout.positions.size > 0 && containerRef.current) {
-            // Apply zoom-to-fit immediately without delay to prevent zoom animation
-            requestAnimationFrame(() => {
-                zoomToFit();
-                setInitialZoomSet(true);
-            });
-        }
-    }, [initialZoomSet, layout, zoomToFit]);
 
     const getInitials = (name) => {
         if (!name) return '?';
@@ -753,13 +782,14 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
             </div>
 
             {/* Canvas with transform */}
-            <div
-                className="generational-view-canvas"
-                style={{
-                    transform: `translate(${viewTransform.x}px, ${viewTransform.y}px) scale(${viewTransform.scale})`,
-                    transformOrigin: '0 0'
-                }}
-            >
+            {viewTransform && (
+                <div
+                    className="generational-view-canvas"
+                    style={{
+                        transform: `translate(${viewTransform.x}px, ${viewTransform.y}px) scale(${viewTransform.scale})`,
+                        transformOrigin: '0 0'
+                    }}
+                >
                 {/* SVG overlay for lines */}
                 <svg className="gen-tree-lines" style={{ overflow: 'visible' }}>
                     {connectionLines.map(line => (
@@ -870,6 +900,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
                     </div>
                 )}
             </div>
+            )}
         </div>
     );
 };
