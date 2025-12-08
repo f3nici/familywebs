@@ -379,36 +379,36 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
 
             if (!p1Pos || !p2Pos || !marriageNodePos) return;
 
-            // Calculate center positions for person cards
+            // Calculate center and bottom positions for person cards
             const p1CenterX = p1Pos.x + CARD_WIDTH / 2;
-            const p1CenterY = p1Pos.y + CARD_HEIGHT / 2;
+            const p1BottomY = p1Pos.y + CARD_HEIGHT;
             const p2CenterX = p2Pos.x + CARD_WIDTH / 2;
-            const p2CenterY = p2Pos.y + CARD_HEIGHT / 2;
+            const p2BottomY = p2Pos.y + CARD_HEIGHT;
 
             // Determine which parent is on the left and which is on the right
             const leftParent = p1CenterX < p2CenterX ?
-                { id: parent1Id, x: p1Pos.x + CARD_WIDTH, y: p1CenterY, centerX: p1CenterX } :
-                { id: parent2Id, x: p2Pos.x + CARD_WIDTH, y: p2CenterY, centerX: p2CenterX };
+                { id: parent1Id, x: p1CenterX, y: p1BottomY } :
+                { id: parent2Id, x: p2CenterX, y: p2BottomY };
             const rightParent = p1CenterX < p2CenterX ?
-                { id: parent2Id, x: p2Pos.x, y: p2CenterY, centerX: p2CenterX } :
-                { id: parent1Id, x: p1Pos.x, y: p1CenterY, centerX: p1CenterX };
+                { id: parent2Id, x: p2CenterX, y: p2BottomY } :
+                { id: parent1Id, x: p1CenterX, y: p1BottomY };
 
             // Check if this marriage involves the selected person
             const isMarriageHighlighted = selectedPerson && (parent1Id === selectedPerson || parent2Id === selectedPerson);
 
-            // Connect from right side of left parent to left side of marriage node
+            // Connect from bottom of left parent to left side of marriage circle node
             lines.push({
                 key: `left-parent-to-marriage-${marriageIdx}`,
-                path: `M ${leftParent.x} ${leftParent.y} L ${marriageNodePos.x - 10} ${leftParent.y} L ${marriageNodePos.x - 10} ${marriageNodePos.y} L ${marriageNodePos.x} ${marriageNodePos.y}`,
+                path: `M ${leftParent.x} ${leftParent.y} L ${leftParent.x} ${marriageNodePos.y} L ${marriageNodePos.x - 10} ${marriageNodePos.y}`,
                 type: 'marriage',
                 highlighted: isMarriageHighlighted,
                 relatedPeople: [parent1Id, parent2Id]
             });
 
-            // Connect from left side of right parent to right side of marriage node
+            // Connect from bottom of right parent to right side of marriage circle node
             lines.push({
                 key: `right-parent-to-marriage-${marriageIdx}`,
-                path: `M ${rightParent.x} ${rightParent.y} L ${marriageNodePos.x + 10} ${rightParent.y} L ${marriageNodePos.x + 10} ${marriageNodePos.y} L ${marriageNodePos.x} ${marriageNodePos.y}`,
+                path: `M ${rightParent.x} ${rightParent.y} L ${rightParent.x} ${marriageNodePos.y} L ${marriageNodePos.x + 10} ${marriageNodePos.y}`,
                 type: 'marriage',
                 highlighted: isMarriageHighlighted,
                 relatedPeople: [parent1Id, parent2Id]
