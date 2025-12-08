@@ -1224,6 +1224,11 @@
             z-index: 5;
             box-shadow: 0 2px 8px rgba(196, 149, 106, 0.4);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: grab;
+        }
+
+        .gen-marriage-node:active {
+            cursor: grabbing;
         }
 
         .gen-marriage-node:hover {

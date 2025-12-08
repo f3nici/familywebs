@@ -13,6 +13,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
     const [draggingNode, setDraggingNode] = useState(null);
     const [nodeDragStart, setNodeDragStart] = useState({ x: 0, y: 0 });
     const [nodePositions, setNodePositions] = useState(new Map());
+    const [marriageNodePositions, setMarriageNodePositions] = useState(new Map());
 
     // STEP 1: Calculate generations with proper conflict resolution
     const generationData = useMemo(() => {
@@ -292,6 +293,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
         });
 
         // Apply same offsets to marriage nodes based on their parent's generation
+        // and center them between their two parents
         initialMarriagePositions.forEach((pos, nodeId) => {
             // Extract marriage index from nodeId (format: "marriage-{idx}")
             const idx = parseInt(nodeId.split('-')[1]);
@@ -300,8 +302,26 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
                 const parentGen = generationData.personGeneration.get(marriage[0]) || 0;
                 const yOffset = generationYOffsets.get(parentGen) || 0;
 
+                // Get parent positions to center the marriage node
+                const parent1Pos = positions.get(marriage[0]);
+                const parent2Pos = positions.get(marriage[1]);
+
+                let xPos = pos.x; // Default to Dagre position
+                if (parent1Pos && parent2Pos) {
+                    // Center between the two parents
+                    const parent1CenterX = parent1Pos.x + CARD_WIDTH / 2;
+                    const parent2CenterX = parent2Pos.x + CARD_WIDTH / 2;
+                    xPos = (parent1CenterX + parent2CenterX) / 2;
+                }
+
+                // Check if we have a custom dragged position
+                const customPos = marriageNodePositions.get(nodeId);
+                if (customPos) {
+                    xPos = customPos.x;
+                }
+
                 marriageNodePositions.set(nodeId, {
-                    x: pos.x,
+                    x: xPos,
                     y: pos.y + yOffset,
                     size: MARRIAGE_SIZE
                 });
@@ -361,7 +381,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
             MARRIAGE_SIZE,
             marriagesPerGeneration
         };
-    }, [generationData, treeData, nodePositions]);
+    }, [generationData, treeData, nodePositions, marriageNodePositions]);
 
     // STEP 3: Generate connection lines using orthogonal (right angle) routing
     const connectionLines = useMemo(() => {
@@ -486,6 +506,27 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
     }, [viewTransform]);
 
     const handleMouseDown = useCallback((e) => {
+        // Check if clicking on a marriage node for node dragging
+        const marriageNode = e.target.closest('.gen-marriage-node');
+        if (marriageNode) {
+            const marriageNodeId = marriageNode.getAttribute('data-marriage-id');
+            if (marriageNodeId) {
+                setDraggingNode(marriageNodeId);
+                const pos = layout.marriageNodePositions.get(marriageNodeId);
+                if (pos) {
+                    // Store the offset from the node's center to the click point
+                    const canvasRect = containerRef.current.getBoundingClientRect();
+                    const clickX = (e.clientX - canvasRect.left - viewTransform.x) / viewTransform.scale;
+                    setNodeDragStart({
+                        x: clickX - pos.x,
+                        y: 0
+                    });
+                }
+                e.stopPropagation();
+                return;
+            }
+        }
+
         // Check if clicking on a person card for node dragging
         const personCard = e.target.closest('.gen-person-card');
         if (personCard) {
@@ -530,15 +571,29 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
             const GRID_SIZE = 80;
             newX = Math.round(newX / GRID_SIZE) * GRID_SIZE;
 
-            // Get current position to preserve Y coordinate
-            const currentPos = layout.positions.get(draggingNode);
-            if (currentPos) {
-                // Update node position (X only, keep original Y)
-                setNodePositions(prev => {
-                    const newPositions = new Map(prev);
-                    newPositions.set(draggingNode, { x: newX, y: currentPos.y });
-                    return newPositions;
-                });
+            // Check if dragging a person node or marriage node
+            if (draggingNode.startsWith('marriage-')) {
+                // Dragging a marriage node
+                const currentPos = layout.marriageNodePositions.get(draggingNode);
+                if (currentPos) {
+                    // Update marriage node position (X only, keep original Y)
+                    setMarriageNodePositions(prev => {
+                        const newPositions = new Map(prev);
+                        newPositions.set(draggingNode, { x: newX, y: currentPos.y });
+                        return newPositions;
+                    });
+                }
+            } else {
+                // Dragging a person node
+                const currentPos = layout.positions.get(draggingNode);
+                if (currentPos) {
+                    // Update node position (X only, keep original Y)
+                    setNodePositions(prev => {
+                        const newPositions = new Map(prev);
+                        newPositions.set(draggingNode, { x: newX, y: currentPos.y });
+                        return newPositions;
+                    });
+                }
             }
         } else if (isDragging) {
             // Panning the canvas - support both X and Y directions
@@ -674,13 +729,15 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
                 {marriageNodes.map(node => (
                     <div
                         key={node.id}
+                        data-marriage-id={node.id}
                         className="gen-marriage-node"
                         style={{
                             position: 'absolute',
                             left: `${node.x - node.size / 2}px`,
                             top: `${node.y - node.size / 2}px`,
                             width: `${node.size}px`,
-                            height: `${node.size}px`
+                            height: `${node.size}px`,
+                            cursor: 'grab'
                         }}
                     />
                 ))}
