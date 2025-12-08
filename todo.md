@@ -1,6 +1,6 @@
 View only website option that has JSON file locally.
 
-Better algorithm for generational view
+Better algorithm for generational view - better formattings
 
 Add full mobile support
 
