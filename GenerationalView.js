@@ -157,128 +157,80 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
         };
     }, [treeData]);
 
-    // STEP 2: Calculate layout positions with adaptive vertical spacing
+    // STEP 2: Calculate layout positions using Dagre for hierarchical arrangement
     const layout = useMemo(() => {
-        const { sortedGenerations, personGeneration } = generationData;
-
         const CARD_WIDTH = 200;
         const CARD_HEIGHT = 150;
-        const HORIZONTAL_GAP = 120;
-        const VERTICAL_GAP = 350; // Fixed spacing between generations (increased for marriage lines)
-        const SPOUSE_GAP = 50;
-        const BASE_OFFSET = 60; // Base offset for first marriage line
-        const LEVEL_SPACING = 35; // Space between each marriage level
+        const MARRIAGE_SIZE = 16;
 
-        const positions = new Map();
-        const marriageNodePositions = new Map();
+        const dagreGraph = new dagre.graphlib.Graph();
+        dagreGraph.setDefaultEdgeLabel(() => ({}));
+        dagreGraph.setGraph({ rankdir: 'TB', nodesep: 80, ranksep: 180 });
 
-        const groupIntoFamilies = (peopleInGen) => {
-            const familyUnits = [];
-            const processed = new Set();
+        const nodes = [];
+        const edges = [];
 
-            peopleInGen.forEach(personId => {
-                if (processed.has(personId)) return;
-
-                const family = [personId];
-                processed.add(personId);
-
-                treeData.mariages.forEach(marriage => {
-                    if (marriage.length < 2) return;
-                    const [p1, p2] = marriage;
-
-                    if (p1 === personId && peopleInGen.includes(p2) && !processed.has(p2)) {
-                        family.push(p2);
-                        processed.add(p2);
-                    } else if (p2 === personId && peopleInGen.includes(p1) && !processed.has(p1)) {
-                        family.push(p1);
-                        processed.add(p1);
-                    }
-                });
-
-                familyUnits.push(family);
-            });
-
-            return familyUnits;
-        };
-
-        // Position all cards
-        let currentY = 100;
-
-        sortedGenerations.forEach(([genNum, peopleInGen]) => {
-            const familyUnits = groupIntoFamilies(peopleInGen);
-            let currentX = 100;
-
-            familyUnits.forEach((family) => {
-                family.forEach((personId) => {
-                    positions.set(personId, {
-                        x: currentX,
-                        y: currentY,
-                        width: CARD_WIDTH,
-                        height: CARD_HEIGHT
-                    });
-                    currentX += CARD_WIDTH + SPOUSE_GAP;
-                });
-                currentX += HORIZONTAL_GAP - SPOUSE_GAP;
-            });
-
-            currentY += CARD_HEIGHT + VERTICAL_GAP;
+        Object.keys(treeData.people).forEach(personId => {
+            nodes.push({ id: personId, type: 'person' });
         });
-
-        // Calculate marriage node positions with unique Y-levels
-        const marriagesByGeneration = new Map();
 
         treeData.mariages.forEach((marriage, idx) => {
             if (marriage.length < 2) return;
 
-            const [parent1Id, parent2Id] = marriage;
-            const p1Pos = positions.get(parent1Id);
-            const p2Pos = positions.get(parent2Id);
+            const [parent1, parent2, ...children] = marriage;
+            const marriageId = `marriage-${idx}`;
 
-            if (!p1Pos || !p2Pos) return;
+            nodes.push({ id: marriageId, type: 'marriage' });
 
-            const genY = p1Pos.y;
+            edges.push({ id: `edge-${parent1}-${marriageId}`, source: parent1, target: marriageId });
+            edges.push({ id: `edge-${parent2}-${marriageId}`, source: parent2, target: marriageId });
 
-            if (!marriagesByGeneration.has(genY)) {
-                marriagesByGeneration.set(genY, []);
-            }
-
-            marriagesByGeneration.get(genY).push({
-                idx,
-                parent1Id,
-                parent2Id,
-                p1Pos,
-                p2Pos
+            children.forEach(childId => {
+                edges.push({ id: `edge-${marriageId}-${childId}`, source: marriageId, target: childId });
             });
         });
 
-        // Assign Y-levels to each marriage in a generation
-        marriagesByGeneration.forEach((marriages) => {
-            marriages.sort((a, b) => {
-                const aX = (a.p1Pos.x + a.p2Pos.x) / 2;
-                const bX = (b.p1Pos.x + b.p2Pos.x) / 2;
-                return aX - bX;
-            });
+        nodes.forEach(node => {
+            const width = node.type === 'marriage' ? MARRIAGE_SIZE * 2 : CARD_WIDTH;
+            const height = node.type === 'marriage' ? MARRIAGE_SIZE * 2 : CARD_HEIGHT;
+            dagreGraph.setNode(node.id, { width, height });
+        });
 
-            marriages.forEach((marriage, levelIdx) => {
-                const { idx, parent1Id, parent2Id, p1Pos, p2Pos } = marriage;
+        edges.forEach(edge => {
+            dagreGraph.setEdge(edge.source, edge.target);
+        });
 
-                const marriageNodeId = `marriage-${parent1Id}-${parent2Id}-${idx}`;
-                const marriageMidX = (p1Pos.x + CARD_WIDTH / 2 + p2Pos.x + CARD_WIDTH / 2) / 2;
-                const marriageMidY = Math.max(p1Pos.y + CARD_HEIGHT, p2Pos.y + CARD_HEIGHT) + BASE_OFFSET + (levelIdx * LEVEL_SPACING);
+        dagre.layout(dagreGraph);
 
-                marriageNodePositions.set(marriageNodeId, {
-                    x: marriageMidX,
-                    y: marriageMidY,
-                    level: levelIdx
+        const positions = new Map();
+        const marriageNodePositions = new Map();
+
+        nodes.forEach(node => {
+            const dagreNode = dagreGraph.node(node.id);
+            if (!dagreNode) return;
+
+            if (node.type === 'person') {
+                positions.set(node.id, {
+                    x: dagreNode.x - CARD_WIDTH / 2,
+                    y: dagreNode.y - CARD_HEIGHT / 2,
+                    width: CARD_WIDTH,
+                    height: CARD_HEIGHT
                 });
-            });
+            } else {
+                marriageNodePositions.set(node.id, {
+                    x: dagreNode.x,
+                    y: dagreNode.y,
+                    size: MARRIAGE_SIZE * 2
+                });
+            }
         });
 
         return {
             positions,
             marriageNodePositions,
             CARD_WIDTH,
-            CARD_HEIGHT
+            CARD_HEIGHT,
+            MARRIAGE_SIZE
         };
     }, [generationData, treeData]);
 
@@ -293,7 +245,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
             const [parent1Id, parent2Id, ...childrenIds] = marriage;
             const p1Pos = positions.get(parent1Id);
             const p2Pos = positions.get(parent2Id);
-            const marriageNodeId = `marriage-${parent1Id}-${parent2Id}-${marriageIdx}`;
+            const marriageNodeId = `marriage-${marriageIdx}`;
             const marriageNodePos = marriageNodePositions.get(marriageNodeId);
 
             if (!p1Pos || !p2Pos || !marriageNodePos) return;
@@ -362,7 +314,8 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
             nodes.push({
                 id: nodeId,
                 x: pos.x,
-                y: pos.y
+                y: pos.y,
+                size: pos.size
             });
         });
 
@@ -417,7 +370,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
     const zoomToFit = useCallback(() => {
         if (!containerRef.current) return;
 
-        const { positions } = layout;
+        const { positions, marriageNodePositions } = layout;
         if (positions.size === 0) return;
 
         // Get bounds of all cards
@@ -429,6 +382,14 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
             maxX = Math.max(maxX, pos.x + pos.width);
             minY = Math.min(minY, pos.y);
             maxY = Math.max(maxY, pos.y + pos.height);
+        });
+
+        marriageNodePositions.forEach(pos => {
+            const halfSize = pos.size / 2;
+            minX = Math.min(minX, pos.x - halfSize);
+            maxX = Math.max(maxX, pos.x + halfSize);
+            minY = Math.min(minY, pos.y - halfSize);
+            maxY = Math.max(maxY, pos.y + halfSize);
         });
 
         const contentWidth = maxX - minX;
@@ -527,8 +488,10 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
                         className="gen-marriage-node"
                         style={{
                             position: 'absolute',
-                            left: `${node.x - 8}px`,
-                            top: `${node.y - 8}px`
+                            left: `${node.x - node.size / 2}px`,
+                            top: `${node.y - node.size / 2}px`,
+                            width: `${node.size}px`,
+                            height: `${node.size}px`
                         }}
                     />
                 ))}
