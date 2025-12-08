@@ -277,6 +277,9 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
             });
 
             // Orthogonal lines from marriage node to children
+            const siblingCount = childrenIds.length;
+            const siblingSpread = 22;
+
             childrenIds.forEach((childId, childIdx) => {
                 const childPos = positions.get(childId);
                 if (!childPos) return;
@@ -285,7 +288,11 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
                 const childTopY = childPos.y;
 
                 // Down from marriage node, then across to child, then up to child
-                const intermediateY = (marriageNodePos.y + childTopY) / 2;
+                const middleY = (marriageNodePos.y + childTopY) / 2;
+
+                // Offset the horizontal runs slightly per sibling to avoid overlapping lines
+                const offsetFromCenter = (childIdx - (siblingCount - 1) / 2) * siblingSpread;
+                const intermediateY = middleY + offsetFromCenter;
 
                 // Check if this parent-child relationship involves the selected person
                 const isParentChildHighlighted = selectedPerson &&
