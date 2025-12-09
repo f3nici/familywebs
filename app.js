@@ -1424,6 +1424,9 @@
             const [showEditRelationshipModal, setShowEditRelationshipModal] = useState(false);
             const [showHelpModal, setShowHelpModal] = useState(false);
             const [viewMode, setViewMode] = useState('web'); // 'web' or 'generational'
+            const [showMobileMenu, setShowMobileMenu] = useState(false);
+            const [showMobileDetailPanel, setShowMobileDetailPanel] = useState(false);
+            const [showMobileFabMenu, setShowMobileFabMenu] = useState(false);
 
             const fileInputRef = useRef(null);
             const getNodePositionsRef = useRef(null);
@@ -1725,6 +1728,14 @@
             return (
                 <div className="app-container">
                     <header className="header">
+                        <button
+                            className="mobile-menu-button"
+                            onClick={() => setShowMobileMenu(!showMobileMenu)}
+                            aria-label="Toggle menu"
+                        >
+                            {Icons.list}
+                        </button>
+
                         <div className="logo">
                             <div className="logo-icon" style={{background: 'none', borderRadius: '0'}}>
                                 <img src="assets/logo.png" alt="Family Webs" style={{width: '60px', height: '60px', objectFit: 'contain'}} />
@@ -1798,12 +1809,21 @@
                     </header>
 
                     <div className="main-content">
-                        <aside className="sidebar">
+                        {showMobileMenu && <div className="mobile-overlay" onClick={() => setShowMobileMenu(false)} />}
+
+                        <aside className={`sidebar ${showMobileMenu ? 'mobile-open' : ''}`}>
                             <div className="sidebar-header">
                                 <h2 className="sidebar-title">Family Members</h2>
+                                <button
+                                    className="mobile-close-button"
+                                    onClick={() => setShowMobileMenu(false)}
+                                    aria-label="Close menu"
+                                >
+                                    {Icons.close}
+                                </button>
                                 <div className="search-box">
                                     <span className="search-icon">{Icons.search}</span>
-                                    <input 
+                                    <input
                                         type="text"
                                         className="search-input"
                                         placeholder="Search people..."
@@ -1826,7 +1846,11 @@
                                             person={person}
                                             personId={personId}
                                             isSelected={selectedPerson === personId}
-                                            onClick={setSelectedPerson}
+                                            onClick={(id) => {
+                                                setSelectedPerson(id);
+                                                setShowMobileDetailPanel(true);
+                                                setShowMobileMenu(false);
+                                            }}
                                             isHomePerson={isHomePerson}
                                             relationship={relationship}
                                             onSetHomePerson={handleSetHomePerson}
@@ -1885,7 +1909,10 @@
                                         <FluidTreeWithReactFlow
                                             treeData={treeData}
                                             selectedPerson={selectedPerson}
-                                            onSelectPerson={setSelectedPerson}
+                                            onSelectPerson={(id) => {
+                                                setSelectedPerson(id);
+                                                setShowMobileDetailPanel(true);
+                                            }}
                                             getNodePositionsRef={getNodePositionsRef}
                                         />
                                     </div>
@@ -1894,7 +1921,10 @@
                                         <GenerationalView
                                             treeData={treeData}
                                             selectedPerson={selectedPerson}
-                                            onSelectPerson={setSelectedPerson}
+                                            onSelectPerson={(id) => {
+                                                setSelectedPerson(id);
+                                                setShowMobileDetailPanel(true);
+                                            }}
                                             getGenerationalViewStateRef={getGenerationalViewStateRef}
                                         />
                                     </div>
@@ -1923,16 +1953,80 @@
                             )}
                         </main>
 
+                        {isEditMode && (
+                            <div className="mobile-fab-container">
+                                {showMobileFabMenu && (
+                                    <>
+                                        <div className="mobile-fab-overlay" onClick={() => setShowMobileFabMenu(false)} />
+                                        <div className="mobile-fab-menu">
+                                            <button
+                                                className="mobile-fab-menu-item"
+                                                onClick={() => {
+                                                    setShowAddPersonModal(true);
+                                                    setShowMobileFabMenu(false);
+                                                }}
+                                            >
+                                                <span className="fab-menu-icon">{Icons.person}</span>
+                                                <span className="fab-menu-text">Add Person</span>
+                                            </button>
+                                            <button
+                                                className="mobile-fab-menu-item"
+                                                onClick={() => {
+                                                    setShowAddMarriageModal(true);
+                                                    setShowMobileFabMenu(false);
+                                                }}
+                                            >
+                                                <span className="fab-menu-icon">{Icons.marriage}</span>
+                                                <span className="fab-menu-text">Add Relationship</span>
+                                            </button>
+                                            <button
+                                                className="mobile-fab-menu-item"
+                                                onClick={() => {
+                                                    setShowDeletePersonModal(true);
+                                                    setShowMobileFabMenu(false);
+                                                }}
+                                            >
+                                                <span className="fab-menu-icon">{Icons.trash}</span>
+                                                <span className="fab-menu-text">Delete Person</span>
+                                            </button>
+                                            <button
+                                                className="mobile-fab-menu-item"
+                                                onClick={() => {
+                                                    setShowEditRelationshipModal(true);
+                                                    setShowMobileFabMenu(false);
+                                                }}
+                                            >
+                                                <span className="fab-menu-icon">{Icons.edit}</span>
+                                                <span className="fab-menu-text">Edit Relationship</span>
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                                <button
+                                    className={`mobile-fab ${showMobileFabMenu ? 'active' : ''}`}
+                                    onClick={() => setShowMobileFabMenu(!showMobileFabMenu)}
+                                    title="Actions"
+                                >
+                                    {showMobileFabMenu ? Icons.close : Icons.plus}
+                                </button>
+                            </div>
+                        )}
+
                         {selectedPerson && treeData.people[selectedPerson] && (
-                            <DetailPanel 
-                                person={treeData.people[selectedPerson]}
-                                personId={selectedPerson}
-                                treeData={treeData}
-                                isEditMode={isEditMode}
-                                onUpdate={handleUpdatePerson}
-                                onClose={() => setSelectedPerson(null)}
-                                onSelectPerson={setSelectedPerson}
-                            />
+                            <>
+                                {showMobileDetailPanel && <div className="mobile-overlay" onClick={() => {setSelectedPerson(null); setShowMobileDetailPanel(false);}} />}
+                                <div className={`detail-panel ${showMobileDetailPanel ? 'mobile-open' : ''}`}>
+                                    <DetailPanel
+                                        person={treeData.people[selectedPerson]}
+                                        personId={selectedPerson}
+                                        treeData={treeData}
+                                        isEditMode={isEditMode}
+                                        onUpdate={handleUpdatePerson}
+                                        onClose={() => {setSelectedPerson(null); setShowMobileDetailPanel(false);}}
+                                        onSelectPerson={setSelectedPerson}
+                                    />
+                                </div>
+                            </>
                         )}
                     </div>
 

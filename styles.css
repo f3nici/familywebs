@@ -994,6 +994,164 @@
             animation: slideIn 0.3s ease;
         }
 
+        /* Mobile Menu Button */
+        .mobile-menu-button {
+            display: none;
+            width: 48px;
+            height: 48px;
+            border: none;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 1.5rem;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .mobile-menu-button:hover {
+            background: var(--bg-secondary);
+        }
+
+        .mobile-menu-button:active {
+            transform: scale(0.95);
+        }
+
+        /* Mobile Close Button */
+        .mobile-close-button {
+            display: none;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.5rem;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            z-index: 10;
+        }
+
+        .mobile-close-button:hover {
+            background: var(--accent-warm-light);
+        }
+
+        /* Mobile Overlay */
+        .mobile-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(44, 36, 22, 0.6);
+            z-index: 999;
+            backdrop-filter: blur(4px);
+            animation: fadeIn 0.2s ease;
+        }
+
+        /* Mobile FAB (Floating Action Button) */
+        .mobile-fab-container {
+            display: none;
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 900;
+        }
+
+        .mobile-fab {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, var(--accent-warm) 0%, #b8845a 100%);
+            color: white;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(196, 149, 106, 0.4), 0 8px 24px rgba(44, 36, 22, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-fab:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(196, 149, 106, 0.5), 0 12px 32px rgba(44, 36, 22, 0.25);
+        }
+
+        .mobile-fab:active {
+            transform: scale(0.95);
+        }
+
+        .mobile-fab.active {
+            transform: rotate(45deg);
+        }
+
+        /* Mobile FAB Overlay */
+        .mobile-fab-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: transparent;
+            z-index: 898;
+        }
+
+        /* Mobile FAB Menu */
+        .mobile-fab-menu {
+            display: none;
+            position: absolute;
+            bottom: 72px;
+            right: 0;
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 8px 24px rgba(44, 36, 22, 0.3);
+            padding: 8px;
+            min-width: 200px;
+            animation: slideIn 0.2s ease;
+            z-index: 901;
+        }
+
+        .mobile-fab-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            padding: 14px 16px;
+            border: none;
+            background: transparent;
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-align: left;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .mobile-fab-menu-item:hover {
+            background: var(--bg-secondary);
+        }
+
+        .mobile-fab-menu-item:active {
+            background: var(--accent-warm-light);
+        }
+
+        .fab-menu-icon {
+            font-size: 1.2rem;
+            width: 24px;
+            text-align: center;
+        }
+
+        .fab-menu-text {
+            flex: 1;
+        }
+
         /* Responsive */
         @media (max-width: 1200px) {
             .sidebar {
@@ -1005,8 +1163,456 @@
         }
 
         @media (max-width: 900px) {
+            .mobile-menu-button {
+                display: flex;
+            }
+
+            .mobile-close-button {
+                display: flex;
+            }
+
+            .mobile-overlay {
+                display: block;
+            }
+
+            .mobile-fab-container {
+                display: block;
+            }
+
+            .mobile-fab-overlay {
+                display: block;
+            }
+
+            .mobile-fab-menu {
+                display: flex;
+                flex-direction: column;
+            }
+
+            /* Sidebar as mobile drawer */
             .sidebar {
+                position: fixed;
+                top: 0;
+                left: -100%;
+                width: 85%;
+                max-width: 340px;
+                height: 100vh;
+                z-index: 1000;
+                transition: left 0.3s ease;
+                box-shadow: none;
+            }
+
+            .sidebar.mobile-open {
+                left: 0;
+                box-shadow: 4px 0 20px rgba(44, 36, 22, 0.3);
+            }
+
+            /* Detail panel as centered modal */
+            .detail-panel {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%) scale(0.9);
+                opacity: 0;
+                width: 90%;
+                max-width: 400px;
+                max-height: 85vh;
+                border: 1px solid var(--border-subtle);
+                border-left: 1px solid var(--border-subtle);
+                border-radius: var(--radius-lg);
+                z-index: 1000;
+                transition: transform 0.3s ease, opacity 0.3s ease;
+                pointer-events: none;
+            }
+
+            .detail-panel.mobile-open {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+                pointer-events: auto;
+                box-shadow: 0 8px 32px rgba(44, 36, 22, 0.3);
+            }
+
+            /* Header adjustments */
+            .header {
+                padding: 12px 16px;
+                gap: 12px;
+            }
+
+            .logo-icon {
+                width: 48px;
+                height: 48px;
+            }
+
+            .logo-text {
+                font-size: 1.3rem;
+            }
+
+            .tree-name {
                 display: none;
+            }
+
+            .header-actions {
+                gap: 8px;
+                flex-wrap: wrap;
+            }
+
+            .view-mode-tabs {
+                order: -1;
+                width: 100%;
+            }
+
+            .toggle-container {
+                padding: 6px 12px;
+            }
+
+            .btn {
+                padding: 10px 16px;
+                font-size: 0.85rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            /* Smaller buttons for very small screens */
+            .btn {
+                padding: 8px 14px;
+                font-size: 0.8rem;
+                gap: 6px;
+            }
+
+            .btn-icon {
+                width: 44px;
+                height: 44px;
+            }
+
+            /* Modal adjustments */
+            .modal {
+                width: 90%;
+                max-width: 500px;
+                max-height: 80vh;
+            }
+
+            .modal-body {
+                padding: 20px;
+            }
+
+            /* Make form inputs touch-friendly */
+            .form-input {
+                padding: 14px 16px;
+                font-size: 16px;
+            }
+
+            /* Tree node adjustments */
+            .tree-node {
+                padding: 16px 20px;
+                min-width: 140px;
+            }
+
+            .node-avatar {
+                width: 50px;
+                height: 50px;
+                font-size: 1.2rem;
+            }
+
+            .node-name {
+                font-size: 0.95rem;
+            }
+
+            .node-surname {
+                font-size: 0.8rem;
+            }
+
+            .node-dates {
+                font-size: 0.75rem;
+            }
+
+            /* React Flow adjustments */
+            .react-flow__node {
+                cursor: pointer;
+            }
+
+            /* Welcome screen */
+            .welcome-screen {
+                padding: 40px 20px;
+            }
+
+            .welcome-title {
+                font-size: 2rem;
+            }
+
+            .welcome-subtitle {
+                font-size: 1rem;
+            }
+
+            .welcome-actions {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .welcome-actions .btn {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            /* Extra small screens */
+            .header {
+                padding: 10px 12px;
+            }
+
+            .logo-icon {
+                width: 40px;
+                height: 40px;
+            }
+
+            .logo-text {
+                font-size: 1.1rem;
+            }
+
+            .mobile-menu-button {
+                width: 44px;
+                height: 44px;
+                font-size: 1.3rem;
+            }
+
+            .btn {
+                padding: 8px 12px;
+                font-size: 0.75rem;
+            }
+
+            .btn-icon {
+                width: 40px;
+                height: 40px;
+            }
+
+            .view-mode-tabs {
+                padding: 3px;
+            }
+
+            .view-tab {
+                padding: 8px 12px;
+                font-size: 0.8rem;
+            }
+
+            /* Compact modal on very small screens */
+            .modal {
+                width: 92%;
+                max-width: 400px;
+                max-height: 75vh;
+            }
+
+            .modal-header {
+                padding: 20px;
+            }
+
+            .modal-title {
+                font-size: 1.3rem;
+            }
+
+            .modal-body {
+                padding: 16px;
+            }
+
+            .modal-footer {
+                padding: 16px 20px;
+                flex-wrap: wrap;
+            }
+
+            .modal-footer .btn {
+                flex: 1;
+                min-width: 120px;
+            }
+
+            /* Sidebar adjustments */
+            .sidebar {
+                width: 90%;
+            }
+
+            .sidebar-header {
+                padding: 16px;
+            }
+
+            .sidebar-title {
+                font-size: 1.1rem;
+            }
+
+            /* Detail panel adjustments */
+            .detail-panel {
+                max-height: 90vh;
+            }
+
+            .detail-header {
+                padding: 20px;
+            }
+
+            .detail-title {
+                font-size: 1.5rem;
+            }
+
+            .detail-content {
+                padding: 20px;
+            }
+
+            /* Person list items */
+            .person-item {
+                padding: 12px 14px;
+            }
+
+            .person-avatar {
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
+            }
+
+            .person-name {
+                font-size: 0.9rem;
+            }
+
+            .person-dates {
+                font-size: 0.75rem;
+            }
+
+            /* Tree nodes even smaller */
+            .tree-node {
+                padding: 14px 16px;
+                min-width: 120px;
+            }
+
+            .node-avatar {
+                width: 44px;
+                height: 44px;
+                font-size: 1.1rem;
+            }
+
+            .node-name {
+                font-size: 0.85rem;
+            }
+
+            .node-surname {
+                font-size: 0.75rem;
+            }
+
+            .node-dates {
+                font-size: 0.7rem;
+            }
+
+            /* Generational view cards */
+            .gen-person-card {
+                padding: 14px 16px;
+                min-width: 140px;
+            }
+
+            .gen-person-card .node-avatar {
+                width: 44px;
+                height: 44px;
+                font-size: 1.1rem;
+            }
+
+            .gen-person-card .node-name {
+                font-size: 0.85rem;
+            }
+
+            .gen-person-card .node-surname {
+                font-size: 0.75rem;
+            }
+
+            .gen-person-card .node-dates {
+                font-size: 0.65rem;
+            }
+
+            /* Welcome screen */
+            .welcome-title {
+                font-size: 1.8rem;
+            }
+
+            .welcome-subtitle {
+                font-size: 0.9rem;
+            }
+
+            .logo-icon img {
+                width: 100%;
+                height: 100%;
+            }
+        }
+
+        /* Touch-friendly improvements */
+        @media (hover: none) and (pointer: coarse) {
+            /* Increase touch targets */
+            .btn {
+                min-height: 44px;
+            }
+
+            .btn-icon {
+                min-width: 48px;
+                min-height: 48px;
+            }
+
+            .person-item {
+                min-height: 60px;
+            }
+
+            .tree-node {
+                cursor: pointer;
+                -webkit-tap-highlight-color: transparent;
+            }
+
+            /* Remove hover effects on touch devices */
+            .tree-node:hover {
+                transform: none;
+            }
+
+            .tree-node:active {
+                transform: scale(0.98);
+            }
+
+            .person-item:hover {
+                background: transparent;
+            }
+
+            .person-item:active {
+                background: var(--bg-secondary);
+            }
+
+            /* Better tap feedback */
+            .btn:active {
+                transform: scale(0.96);
+            }
+
+            /* Disable hover animations on touch */
+            .gen-person-card:hover {
+                transform: none;
+            }
+
+            .gen-person-card:active {
+                transform: scale(0.98);
+            }
+        }
+
+        /* Landscape mobile orientation */
+        @media (max-width: 900px) and (orientation: landscape) {
+            .detail-panel {
+                max-height: 75vh;
+            }
+
+            .sidebar {
+                width: 60%;
+                max-width: 400px;
+            }
+        }
+
+        /* Support for notched displays (iPhone X, etc.) */
+        @supports (padding-top: env(safe-area-inset-top)) {
+            .header {
+                padding-left: max(16px, env(safe-area-inset-left));
+                padding-right: max(16px, env(safe-area-inset-right));
+                padding-top: max(16px, env(safe-area-inset-top));
+            }
+
+            .sidebar {
+                padding-top: env(safe-area-inset-top);
+                padding-bottom: env(safe-area-inset-bottom);
+            }
+
+            .detail-panel {
+                padding-bottom: env(safe-area-inset-bottom);
             }
         }
 
@@ -1075,7 +1681,58 @@
             padding: 8px;
             border-radius: var(--radius-md);
             box-shadow: var(--shadow-soft);
-            z-index: 1000;
+            z-index: 100;
+        }
+
+        /* Fluid Tree Controls Container */
+        .fluid-tree-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: flex-end;
+            z-index: 100;
+        }
+
+        .fluid-tree-controls .gen-view-controls {
+            position: static;
+        }
+
+        .organize-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-family: var(--font-body);
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .organize-btn:hover:not(:disabled) {
+            background: var(--accent-warm-light);
+            border-color: var(--accent-warm);
+        }
+
+        .organize-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .organize-icon {
+            font-size: 1.1rem;
+        }
+
+        .organize-text {
+            white-space: nowrap;
         }
 
         .gen-control-btn {
@@ -1092,6 +1749,7 @@
             align-items: center;
             justify-content: center;
             transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .gen-control-btn:hover {
@@ -1101,6 +1759,50 @@
 
         .gen-control-btn:active {
             transform: scale(0.95);
+        }
+
+        .gen-control-btn.active {
+            background: var(--accent-warm);
+            color: white;
+        }
+
+        /* Mobile controls */
+        @media (max-width: 900px) {
+            .gen-view-controls {
+                top: 16px;
+                right: 16px;
+                padding: 6px;
+                flex-wrap: wrap;
+                max-width: 160px;
+            }
+
+            .gen-control-btn {
+                width: 48px;
+                height: 48px;
+                font-size: 1.4rem;
+                border: 1px solid var(--border-subtle);
+            }
+
+            .gen-control-btn:not(.mobile-hide) {
+                display: flex;
+            }
+
+            .gen-control-btn.mobile-hide {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .gen-view-controls {
+                top: 12px;
+                right: 12px;
+            }
+
+            .gen-control-btn {
+                width: 44px;
+                height: 44px;
+                font-size: 1.3rem;
+            }
         }
 
         .gen-zoom-level {

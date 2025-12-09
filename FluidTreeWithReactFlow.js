@@ -476,8 +476,8 @@ const applyWebMode = async (nodes, edges) => {
     });
 };
 
-const FluidTreeControls = ({ nodes, edges, setNodes }) => {
-    const { fitView } = useReactFlow();
+const FluidTreeControls = ({ nodes, edges, setNodes, isLocked, setIsLocked }) => {
+    const { fitView, zoomIn, zoomOut } = useReactFlow();
     const [isApplyingWebMode, setIsApplyingWebMode] = React.useState(false);
 
     const handleWebMode = async () => {
@@ -506,8 +506,28 @@ const FluidTreeControls = ({ nodes, edges, setNodes }) => {
         }
     };
 
+    const handleFitView = () => {
+        fitView({
+            padding: 0.2,
+            duration: 800,
+            maxZoom: 1.5
+        });
+    };
+
     return (
         <div className="fluid-tree-controls">
+            <div className="gen-view-controls">
+                <button className="gen-control-btn mobile-hide" onClick={() => zoomIn({ duration: 200 })} title="Zoom in">+</button>
+                <button className="gen-control-btn mobile-hide" onClick={() => zoomOut({ duration: 200 })} title="Zoom out">−</button>
+                <button className="gen-control-btn" onClick={handleFitView} title="Fit to screen">⛶</button>
+                <button
+                    className={`gen-control-btn ${isLocked ? 'active' : ''}`}
+                    onClick={() => setIsLocked(!isLocked)}
+                    title={isLocked ? "Unlock" : "Lock"}
+                >
+                    {isLocked ? '🔒' : '🔓'}
+                </button>
+            </div>
             <button
                 className="organize-btn"
                 onClick={handleWebMode}
@@ -529,6 +549,7 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePosit
 
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+    const [isLocked, setIsLocked] = React.useState(true);
 
     const prevTreeDataRef = React.useRef(treeData);
     const { fitView } = useReactFlow();
@@ -606,13 +627,14 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePosit
                 minZoom={0.1}
                 maxZoom={2}
                 defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
-                nodesDraggable={true}
+                nodesDraggable={!isLocked}
                 nodesConnectable={false}
                 elementsSelectable={true}
+                panOnDrag={true}
             >
                 <Background color="#e5ddd2" gap={20} size={1} />
             </ReactFlow>
-            <FluidTreeControls nodes={nodes} edges={edges} setNodes={setNodes} />
+            <FluidTreeControls nodes={nodes} edges={edges} setNodes={setNodes} isLocked={isLocked} setIsLocked={setIsLocked} />
         </>
     );
 };
