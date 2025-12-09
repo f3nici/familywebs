@@ -1088,6 +1088,69 @@
             transform: scale(0.95);
         }
 
+        .mobile-fab.active {
+            transform: rotate(45deg);
+        }
+
+        /* Mobile FAB Overlay */
+        .mobile-fab-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: transparent;
+            z-index: 899;
+        }
+
+        /* Mobile FAB Menu */
+        .mobile-fab-menu {
+            display: none;
+            position: absolute;
+            bottom: 72px;
+            right: 0;
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 8px 24px rgba(44, 36, 22, 0.3);
+            padding: 8px;
+            min-width: 200px;
+            animation: slideIn 0.2s ease;
+        }
+
+        .mobile-fab-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            padding: 14px 16px;
+            border: none;
+            background: transparent;
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-align: left;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .mobile-fab-menu-item:hover {
+            background: var(--bg-secondary);
+        }
+
+        .mobile-fab-menu-item:active {
+            background: var(--accent-warm-light);
+        }
+
+        .fab-menu-icon {
+            font-size: 1.2rem;
+            width: 24px;
+            text-align: center;
+        }
+
+        .fab-menu-text {
+            flex: 1;
+        }
+
         /* Responsive */
         @media (max-width: 1200px) {
             .sidebar {
@@ -1113,6 +1176,15 @@
 
             .mobile-fab-container {
                 display: block;
+            }
+
+            .mobile-fab-overlay {
+                display: block;
+            }
+
+            .mobile-fab-menu {
+                display: flex;
+                flex-direction: column;
             }
 
             /* Sidebar as mobile drawer */
@@ -1615,6 +1687,7 @@
             align-items: center;
             justify-content: center;
             transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .gen-control-btn:hover {
@@ -1624,6 +1697,35 @@
 
         .gen-control-btn:active {
             transform: scale(0.95);
+        }
+
+        /* Mobile controls */
+        @media (max-width: 900px) {
+            .gen-view-controls {
+                top: 16px;
+                right: 16px;
+                padding: 6px;
+            }
+
+            .gen-control-btn {
+                width: 48px;
+                height: 48px;
+                font-size: 1.4rem;
+                border: 1px solid var(--border-subtle);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .gen-view-controls {
+                top: 12px;
+                right: 12px;
+            }
+
+            .gen-control-btn {
+                width: 44px;
+                height: 44px;
+                font-size: 1.3rem;
+            }
         }
 
         .gen-zoom-level {

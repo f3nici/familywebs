@@ -1426,6 +1426,7 @@
             const [viewMode, setViewMode] = useState('web'); // 'web' or 'generational'
             const [showMobileMenu, setShowMobileMenu] = useState(false);
             const [showMobileDetailPanel, setShowMobileDetailPanel] = useState(false);
+            const [showMobileFabMenu, setShowMobileFabMenu] = useState(false);
 
             const fileInputRef = useRef(null);
             const getNodePositionsRef = useRef(null);
@@ -1954,12 +1955,59 @@
 
                         {isEditMode && (
                             <div className="mobile-fab-container">
+                                {showMobileFabMenu && (
+                                    <>
+                                        <div className="mobile-fab-overlay" onClick={() => setShowMobileFabMenu(false)} />
+                                        <div className="mobile-fab-menu">
+                                            <button
+                                                className="mobile-fab-menu-item"
+                                                onClick={() => {
+                                                    setShowAddPersonModal(true);
+                                                    setShowMobileFabMenu(false);
+                                                }}
+                                            >
+                                                <span className="fab-menu-icon">{Icons.person}</span>
+                                                <span className="fab-menu-text">Add Person</span>
+                                            </button>
+                                            <button
+                                                className="mobile-fab-menu-item"
+                                                onClick={() => {
+                                                    setShowAddMarriageModal(true);
+                                                    setShowMobileFabMenu(false);
+                                                }}
+                                            >
+                                                <span className="fab-menu-icon">{Icons.marriage}</span>
+                                                <span className="fab-menu-text">Add Relationship</span>
+                                            </button>
+                                            <button
+                                                className="mobile-fab-menu-item"
+                                                onClick={() => {
+                                                    setShowDeletePersonModal(true);
+                                                    setShowMobileFabMenu(false);
+                                                }}
+                                            >
+                                                <span className="fab-menu-icon">{Icons.trash}</span>
+                                                <span className="fab-menu-text">Delete Person</span>
+                                            </button>
+                                            <button
+                                                className="mobile-fab-menu-item"
+                                                onClick={() => {
+                                                    setShowEditRelationshipModal(true);
+                                                    setShowMobileFabMenu(false);
+                                                }}
+                                            >
+                                                <span className="fab-menu-icon">{Icons.edit}</span>
+                                                <span className="fab-menu-text">Edit Relationship</span>
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
                                 <button
-                                    className="mobile-fab"
-                                    onClick={() => setShowAddPersonModal(true)}
-                                    title="Add Person"
+                                    className={`mobile-fab ${showMobileFabMenu ? 'active' : ''}`}
+                                    onClick={() => setShowMobileFabMenu(!showMobileFabMenu)}
+                                    title="Actions"
                                 >
-                                    {Icons.plus}
+                                    {showMobileFabMenu ? Icons.close : Icons.plus}
                                 </button>
                             </div>
                         )}

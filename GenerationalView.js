@@ -35,6 +35,8 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
     const [nodeDragStart, setNodeDragStart] = useState({ x: 0, y: 0 });
     const [nodePositions, setNodePositions] = useState(initialViewState.nodePositions);
     const [marriageNodePositions, setMarriageNodePositions] = useState(initialViewState.marriageNodePositions);
+    const [lastTouchDistance, setLastTouchDistance] = useState(null);
+    const [touchStart, setTouchStart] = useState(null);
 
     useEffect(() => {
         if (getGenerationalViewStateRef) {
@@ -628,6 +630,148 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
         setDraggingNode(null);
     }, []);
 
+    const getTouchDistance = (touch1, touch2) => {
+        const dx = touch1.clientX - touch2.clientX;
+        const dy = touch1.clientY - touch2.clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+    };
+
+    const getTouchCenter = (touch1, touch2) => {
+        return {
+            x: (touch1.clientX + touch2.clientX) / 2,
+            y: (touch1.clientY + touch2.clientY) / 2
+        };
+    };
+
+    const handleTouchStart = useCallback((e) => {
+        if (e.touches.length === 2) {
+            // Pinch zoom start
+            e.preventDefault();
+            const distance = getTouchDistance(e.touches[0], e.touches[1]);
+            setLastTouchDistance(distance);
+        } else if (e.touches.length === 1) {
+            // Single touch - check if it's on a node
+            const touch = e.touches[0];
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+
+            const marriageNode = target?.closest('.gen-marriage-node');
+            if (marriageNode) {
+                const marriageNodeId = marriageNode.getAttribute('data-marriage-id');
+                if (marriageNodeId) {
+                    setDraggingNode(marriageNodeId);
+                    const pos = layout.marriageNodePositions.get(marriageNodeId);
+                    if (pos && containerRef.current) {
+                        const canvasRect = containerRef.current.getBoundingClientRect();
+                        const touchX = (touch.clientX - canvasRect.left - viewTransform.x) / viewTransform.scale;
+                        setNodeDragStart({
+                            x: touchX - pos.x,
+                            y: 0
+                        });
+                    }
+                    return;
+                }
+            }
+
+            const personCard = target?.closest('.gen-person-card');
+            if (personCard) {
+                const personId = personCard.getAttribute('data-person-id');
+                if (personId) {
+                    setDraggingNode(personId);
+                    const pos = layout.positions.get(personId);
+                    if (pos && containerRef.current) {
+                        const canvasRect = containerRef.current.getBoundingClientRect();
+                        const touchX = (touch.clientX - canvasRect.left - viewTransform.x) / viewTransform.scale;
+                        const touchY = (touch.clientY - canvasRect.top - viewTransform.y) / viewTransform.scale;
+                        setNodeDragStart({
+                            x: touchX - pos.x,
+                            y: touchY - pos.y
+                        });
+                    }
+                    return;
+                }
+            }
+
+            // Pan start
+            setTouchStart({
+                x: touch.clientX - viewTransform.x,
+                y: touch.clientY - viewTransform.y
+            });
+        }
+    }, [viewTransform, layout]);
+
+    const handleTouchMove = useCallback((e) => {
+        if (e.touches.length === 2 && lastTouchDistance && viewTransform) {
+            // Pinch zoom
+            e.preventDefault();
+            const distance = getTouchDistance(e.touches[0], e.touches[1]);
+            const scale = distance / lastTouchDistance;
+
+            const newScale = Math.min(Math.max(0.1, viewTransform.scale * scale), 3);
+
+            if (!containerRef.current) return;
+            const rect = containerRef.current.getBoundingClientRect();
+            const center = getTouchCenter(e.touches[0], e.touches[1]);
+            const centerX = center.x - rect.left;
+            const centerY = center.y - rect.top;
+
+            const canvasX = (centerX - viewTransform.x) / viewTransform.scale;
+            const canvasY = (centerY - viewTransform.y) / viewTransform.scale;
+
+            const newX = centerX - canvasX * newScale;
+            const newY = centerY - canvasY * newScale;
+
+            setViewTransform({ x: newX, y: newY, scale: newScale });
+            setLastTouchDistance(distance);
+        } else if (e.touches.length === 1) {
+            const touch = e.touches[0];
+
+            if (draggingNode && containerRef.current) {
+                // Node dragging
+                const canvasRect = containerRef.current.getBoundingClientRect();
+                const touchX = (touch.clientX - canvasRect.left - viewTransform.x) / viewTransform.scale;
+
+                let newX = touchX - nodeDragStart.x;
+
+                const GRID_SIZE = 20;
+                newX = Math.round(newX / GRID_SIZE) * GRID_SIZE;
+
+                if (draggingNode.startsWith('marriage-')) {
+                    const currentPos = layout.marriageNodePositions.get(draggingNode);
+                    if (currentPos) {
+                        setMarriageNodePositions(prev => {
+                            const newPositions = new Map(prev);
+                            newPositions.set(draggingNode, { x: newX, y: currentPos.y });
+                            return newPositions;
+                        });
+                    }
+                } else {
+                    const currentPos = layout.positions.get(draggingNode);
+                    if (currentPos) {
+                        setNodePositions(prev => {
+                            const newPositions = new Map(prev);
+                            newPositions.set(draggingNode, { x: newX, y: currentPos.y });
+                            return newPositions;
+                        });
+                    }
+                }
+            } else if (touchStart) {
+                // Pan
+                e.preventDefault();
+                setViewTransform(prev => ({
+                    ...prev,
+                    x: touch.clientX - touchStart.x,
+                    y: touch.clientY - touchStart.y
+                }));
+            }
+        }
+    }, [lastTouchDistance, viewTransform, draggingNode, touchStart, nodeDragStart, layout]);
+
+    const handleTouchEnd = useCallback(() => {
+        setLastTouchDistance(null);
+        setTouchStart(null);
+        setDraggingNode(null);
+    }, []);
+
     const zoomToFit = useCallback(() => {
         if (!containerRef.current) return;
 
@@ -740,6 +884,9 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
             style={{ cursor: draggingNode ? 'grabbing' : (isDragging ? 'grabbing' : 'grab') }}
         >
             <div className="gen-view-controls">
