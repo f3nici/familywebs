@@ -549,7 +549,7 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePosit
 
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-    const [isLocked, setIsLocked] = React.useState(false);
+    const [isLocked, setIsLocked] = React.useState(true);
 
     const prevTreeDataRef = React.useRef(treeData);
     const { fitView } = useReactFlow();

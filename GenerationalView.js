@@ -37,7 +37,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
     const [marriageNodePositions, setMarriageNodePositions] = useState(initialViewState.marriageNodePositions);
     const [lastTouchDistance, setLastTouchDistance] = useState(null);
     const [touchStart, setTouchStart] = useState(null);
-    const [isLocked, setIsLocked] = useState(false);
+    const [isLocked, setIsLocked] = useState(true);
 
     useEffect(() => {
         if (getGenerationalViewStateRef) {
