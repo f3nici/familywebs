@@ -1206,25 +1206,29 @@
                 box-shadow: 4px 0 20px rgba(44, 36, 22, 0.3);
             }
 
-            /* Detail panel as mobile bottom sheet */
+            /* Detail panel as centered modal */
             .detail-panel {
                 position: fixed;
-                bottom: -100%;
-                left: 0;
-                right: 0;
-                width: 100%;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%) scale(0.9);
+                opacity: 0;
+                width: 90%;
+                max-width: 400px;
                 max-height: 85vh;
-                border-left: none;
-                border-top: 1px solid var(--border-subtle);
-                border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+                border: 1px solid var(--border-subtle);
+                border-left: 1px solid var(--border-subtle);
+                border-radius: var(--radius-lg);
                 z-index: 1000;
-                transition: bottom 0.3s ease;
-                box-shadow: none;
+                transition: transform 0.3s ease, opacity 0.3s ease;
+                pointer-events: none;
             }
 
             .detail-panel.mobile-open {
-                bottom: 0;
-                box-shadow: 0 -4px 20px rgba(44, 36, 22, 0.3);
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+                pointer-events: auto;
+                box-shadow: 0 8px 32px rgba(44, 36, 22, 0.3);
             }
 
             /* Header adjustments */
@@ -1281,9 +1285,9 @@
 
             /* Modal adjustments */
             .modal {
-                width: 95%;
-                max-width: none;
-                max-height: 95vh;
+                width: 90%;
+                max-width: 500px;
+                max-height: 80vh;
             }
 
             .modal-body {
@@ -1389,6 +1393,12 @@
             }
 
             /* Compact modal on very small screens */
+            .modal {
+                width: 92%;
+                max-width: 400px;
+                max-height: 75vh;
+            }
+
             .modal-header {
                 padding: 20px;
             }
@@ -1672,6 +1682,57 @@
             border-radius: var(--radius-md);
             box-shadow: var(--shadow-soft);
             z-index: 100;
+        }
+
+        /* Fluid Tree Controls Container */
+        .fluid-tree-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: flex-end;
+            z-index: 100;
+        }
+
+        .fluid-tree-controls .gen-view-controls {
+            position: static;
+        }
+
+        .organize-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-family: var(--font-body);
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .organize-btn:hover:not(:disabled) {
+            background: var(--accent-warm-light);
+            border-color: var(--accent-warm);
+        }
+
+        .organize-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .organize-icon {
+            font-size: 1.1rem;
+        }
+
+        .organize-text {
+            white-space: nowrap;
         }
 
         .gen-control-btn {

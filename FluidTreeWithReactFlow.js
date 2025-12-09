@@ -630,7 +630,7 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePosit
                 nodesDraggable={!isLocked}
                 nodesConnectable={false}
                 elementsSelectable={true}
-                panOnDrag={!isLocked}
+                panOnDrag={true}
             >
                 <Background color="#e5ddd2" gap={20} size={1} />
             </ReactFlow>

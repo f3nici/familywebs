@@ -520,8 +520,6 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
     }, [layout]);
 
     const handleWheel = useCallback((e) => {
-        if (isLocked) return;
-
         e.preventDefault();
         e.stopPropagation();
 
@@ -541,13 +539,12 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
         const newY = mouseY - canvasY * newScale;
 
         setViewTransform({ x: newX, y: newY, scale: newScale });
-    }, [viewTransform, isLocked]);
+    }, [viewTransform]);
 
     const handleMouseDown = useCallback((e) => {
-        if (isLocked) return;
-
         const marriageNode = e.target.closest('.gen-marriage-node');
         if (marriageNode) {
+            if (isLocked) return; // Don't allow node dragging when locked
             const marriageNodeId = marriageNode.getAttribute('data-marriage-id');
             if (marriageNodeId) {
                 setDraggingNode(marriageNodeId);
@@ -567,6 +564,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
 
         const personCard = e.target.closest('.gen-person-card');
         if (personCard) {
+            if (isLocked) return; // Don't allow node dragging when locked
             const personId = personCard.getAttribute('data-person-id');
             if (personId) {
                 setDraggingNode(personId);
@@ -586,6 +584,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
             }
         }
 
+        // Always allow panning, even when locked
         setIsDragging(true);
         setDragStart({
             x: e.clientX - viewTransform.x,
@@ -651,20 +650,19 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
 
     const handleTouchStart = useCallback((e) => {
         if (e.touches.length === 2) {
-            // Pinch zoom start
-            if (!isLocked) {
-                e.preventDefault();
-                e.stopPropagation();
-                const distance = getTouchDistance(e.touches[0], e.touches[1]);
-                setLastTouchDistance(distance);
-            }
-        } else if (e.touches.length === 1 && !isLocked) {
+            // Pinch zoom start - always allow
+            e.preventDefault();
+            e.stopPropagation();
+            const distance = getTouchDistance(e.touches[0], e.touches[1]);
+            setLastTouchDistance(distance);
+        } else if (e.touches.length === 1) {
             // Single touch - check if it's on a node
             const touch = e.touches[0];
             const target = document.elementFromPoint(touch.clientX, touch.clientY);
 
             const marriageNode = target?.closest('.gen-marriage-node');
             if (marriageNode) {
+                if (isLocked) return; // Don't allow node dragging when locked
                 const marriageNodeId = marriageNode.getAttribute('data-marriage-id');
                 if (marriageNodeId) {
                     setDraggingNode(marriageNodeId);
@@ -683,6 +681,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
 
             const personCard = target?.closest('.gen-person-card');
             if (personCard) {
+                if (isLocked) return; // Don't allow node dragging when locked
                 const personId = personCard.getAttribute('data-person-id');
                 if (personId) {
                     setDraggingNode(personId);
@@ -700,7 +699,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                 }
             }
 
-            // Pan start
+            // Pan start - always allow
             setTouchStart({
                 x: touch.clientX - viewTransform.x,
                 y: touch.clientY - viewTransform.y
@@ -709,8 +708,8 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
     }, [viewTransform, layout, isLocked]);
 
     const handleTouchMove = useCallback((e) => {
-        if (e.touches.length === 2 && lastTouchDistance && viewTransform && !isLocked) {
-            // Pinch zoom
+        if (e.touches.length === 2 && lastTouchDistance && viewTransform) {
+            // Pinch zoom - always allow
             e.preventDefault();
             e.stopPropagation();
             const distance = getTouchDistance(e.touches[0], e.touches[1]);
@@ -732,11 +731,11 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
 
             setViewTransform({ x: newX, y: newY, scale: newScale });
             setLastTouchDistance(distance);
-        } else if (e.touches.length === 1 && !isLocked) {
+        } else if (e.touches.length === 1) {
             const touch = e.touches[0];
 
-            if (draggingNode && containerRef.current) {
-                // Node dragging
+            if (draggingNode && containerRef.current && !isLocked) {
+                // Node dragging - only when not locked
                 const canvasRect = containerRef.current.getBoundingClientRect();
                 const touchX = (touch.clientX - canvasRect.left - viewTransform.x) / viewTransform.scale;
 
@@ -765,7 +764,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                     }
                 }
             } else if (touchStart) {
-                // Pan
+                // Pan - always allow
                 e.preventDefault();
                 setViewTransform(prev => ({
                     ...prev,
