@@ -21,6 +21,7 @@
             grid: '⊞',
             eye: '👁',
             home: '🏠',
+            help: '?',
         };
 
         // Utility Functions
@@ -1368,6 +1369,85 @@
             );
         };
 
+        // Help Modal
+        const HelpModal = ({ isOpen, onClose }) => {
+            if (!isOpen) return null;
+
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal" onClick={e => e.stopPropagation()} style={{maxWidth: '700px'}}>
+                        <div className="modal-header">
+                            <h2 className="modal-title">Help & Instructions</h2>
+                            <button className="btn btn-ghost btn-icon" onClick={onClose}>
+                                {Icons.close}
+                            </button>
+                        </div>
+                        <div className="modal-body" style={{maxHeight: '60vh', overflowY: 'auto'}}>
+                            <div className="detail-section">
+                                <h3 className="section-title">Getting Started</h3>
+                                <p style={{color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: '12px'}}>
+                                    Family Webs helps you create interactive family trees with support for complex relationships including remarriages, half-siblings, and step-families.
+                                </p>
+                            </div>
+
+                            <div className="detail-section">
+                                <h3 className="section-title">Adding People & Relationships</h3>
+                                <ul style={{color: 'var(--text-secondary)', lineHeight: 1.7, paddingLeft: '24px'}}>
+                                    <li style={{marginBottom: '8px'}}><strong>Add Person:</strong> Click the "Add Person" button in the sidebar to create a new family member</li>
+                                    <li style={{marginBottom: '8px'}}><strong>Add Relationship:</strong> Click "Add Relationship" to connect two people as partners and optionally add their children</li>
+                                    <li style={{marginBottom: '8px'}}><strong>Edit Details:</strong> Click on any person in the tree or sidebar to view and edit their information</li>
+                                    <li style={{marginBottom: '8px'}}><strong>Set Home Person:</strong> Click the home icon (🏠) next to a person to set them as the reference point for relationship calculations</li>
+                                </ul>
+                            </div>
+
+                            <div className="detail-section">
+                                <h3 className="section-title">View Modes</h3>
+                                <ul style={{color: 'var(--text-secondary)', lineHeight: 1.7, paddingLeft: '24px'}}>
+                                    <li style={{marginBottom: '8px'}}><strong>Web View:</strong> Shows family members as an interactive web with relationship lines. You can drag people around to position them</li>
+                                    <li style={{marginBottom: '8px'}}><strong>Generational View:</strong> Shows family members organized by generation in a traditional family tree layout</li>
+                                </ul>
+                            </div>
+
+                            <div className="detail-section" style={{background: 'var(--bg-warning)', padding: '16px', borderRadius: '8px', border: '2px solid var(--primary)'}}>
+                                <h3 className="section-title" style={{color: 'var(--text-warning)', marginTop: 0}}>⚠️ Important: Saving Your Work</h3>
+                                <p style={{color: 'var(--text-warning)', lineHeight: 1.7, marginBottom: '12px', fontWeight: '500'}}>
+                                    To save your family tree and preserve the positioning of people in both views:
+                                </p>
+                                <ol style={{color: 'var(--text-warning)', lineHeight: 1.7, paddingLeft: '24px', fontWeight: '500'}}>
+                                    <li style={{marginBottom: '8px'}}><strong>Export Before Switching Views:</strong> Always click "Export" to save your current positioning before switching between Web View and Generational View</li>
+                                    <li style={{marginBottom: '8px'}}><strong>Export = Save:</strong> There is no automatic save. Click the "Export" button to download your family tree as a JSON file</li>
+                                    <li style={{marginBottom: '8px'}}><strong>Import = Load:</strong> To reopen a saved family tree, reload the website and click "Import" to select your saved JSON file</li>
+                                    <li style={{marginBottom: '8px'}}><strong>Local Storage:</strong> Your work is temporarily saved in your browser, but will be lost if you clear browser data or use a different browser</li>
+                                </ol>
+                            </div>
+
+                            <div className="detail-section">
+                                <h3 className="section-title">Edit Mode</h3>
+                                <p style={{color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: '12px'}}>
+                                    Toggle "Edit Mode" in the header to switch between editing and view-only mode. In view-only mode, you can explore the tree without accidentally making changes.
+                                </p>
+                            </div>
+
+                            <div className="detail-section">
+                                <h3 className="section-title">Tips</h3>
+                                <ul style={{color: 'var(--text-secondary)', lineHeight: 1.7, paddingLeft: '24px'}}>
+                                    <li style={{marginBottom: '8px'}}>Use the search box to quickly find family members</li>
+                                    <li style={{marginBottom: '8px'}}>Drag people in Web View to arrange them how you like</li>
+                                    <li style={{marginBottom: '8px'}}>Export your tree regularly to avoid losing work</li>
+                                    <li style={{marginBottom: '8px'}}>Relationships to the home person are shown automatically</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-primary" onClick={onClose} style={{width: '100%'}}>
+                                Got it!
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         // OLD Fluid Tree View - Simple grid layout (replaced with FluidTreeWithReactFlow)
         // Kept here for reference, but no longer used in the main app
         /*
@@ -1413,6 +1493,7 @@
             const [showAddMarriageModal, setShowAddMarriageModal] = useState(false);
             const [showDeletePersonModal, setShowDeletePersonModal] = useState(false);
             const [showEditRelationshipModal, setShowEditRelationshipModal] = useState(false);
+            const [showHelpModal, setShowHelpModal] = useState(false);
             const [viewMode, setViewMode] = useState('web'); // 'web' or 'generational'
 
             const fileInputRef = useRef(null);
@@ -1785,15 +1866,22 @@
                                 />
                             </div>
 
+                            <button
+                                className="btn btn-secondary"
+                                onClick={() => setShowHelpModal(true)}
+                                title="Help & Instructions"
+                            >
+                                {Icons.help} Help
+                            </button>
                             <button className="btn btn-secondary" onClick={handleDownload}>
                                 {Icons.download} Export
                             </button>
                             <button className="btn btn-secondary" onClick={() => fileInputRef.current?.click()}>
                                 {Icons.upload} Import
                             </button>
-                            <input 
+                            <input
                                 ref={fileInputRef}
-                                type="file" 
+                                type="file"
                                 accept=".json"
                                 style={{display: 'none'}}
                                 onChange={handleFileUpload}
@@ -1969,6 +2057,10 @@
                         onUpdate={handleUpdateRelationship}
                         onDelete={handleDeleteRelationship}
                         treeData={treeData}
+                    />
+                    <HelpModal
+                        isOpen={showHelpModal}
+                        onClose={() => setShowHelpModal(false)}
                     />
                 </div>
             );
