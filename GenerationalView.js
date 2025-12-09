@@ -703,10 +703,10 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
         zoomToFit();
     }, [zoomToFit]);
 
-    // Auto zoom-to-fit on initial load and when switching to this view
+    // Auto zoom-to-fit on initial load only (not when dragging nodes)
     useEffect(() => {
-        if (layout.positions.size > 0 && containerRef.current) {
-            // Immediately calculate and set zoom-to-fit on layout changes
+        if (layout.positions.size > 0 && containerRef.current && !initialZoomSet) {
+            // Only auto zoom-to-fit on initial load, not when nodes are dragged
             const { positions, marriageNodePositions } = layout;
 
             // Get bounds of all cards
@@ -747,8 +747,9 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
             const y = (viewportHeight - contentHeight * scale) / 2 - minY * scale;
 
             setViewTransform({ x, y, scale });
+            setInitialZoomSet(true);
         }
-    }, [layout]);
+    }, [layout, initialZoomSet]);
 
     const getInitials = (name) => {
         if (!name) return '?';
@@ -778,7 +779,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
         >
             {/* Zoom controls */}
             <div className="gen-view-controls">
-                <button className="gen-control-btn" onClick={resetView} title="Reset view">🎯</button>
+                <button className="gen-control-btn" onClick={resetView} title="Fit to screen">⛶</button>
             </div>
 
             {/* Canvas with transform */}
