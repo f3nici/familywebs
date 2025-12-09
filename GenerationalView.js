@@ -37,6 +37,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
     const [marriageNodePositions, setMarriageNodePositions] = useState(initialViewState.marriageNodePositions);
     const [lastTouchDistance, setLastTouchDistance] = useState(null);
     const [touchStart, setTouchStart] = useState(null);
+    const [isLocked, setIsLocked] = useState(false);
 
     useEffect(() => {
         if (getGenerationalViewStateRef) {
@@ -519,7 +520,10 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
     }, [layout]);
 
     const handleWheel = useCallback((e) => {
+        if (isLocked) return;
+
         e.preventDefault();
+        e.stopPropagation();
 
         if (!containerRef.current || !viewTransform) return;
 
@@ -537,9 +541,11 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
         const newY = mouseY - canvasY * newScale;
 
         setViewTransform({ x: newX, y: newY, scale: newScale });
-    }, [viewTransform]);
+    }, [viewTransform, isLocked]);
 
     const handleMouseDown = useCallback((e) => {
+        if (isLocked) return;
+
         const marriageNode = e.target.closest('.gen-marriage-node');
         if (marriageNode) {
             const marriageNodeId = marriageNode.getAttribute('data-marriage-id');
@@ -585,7 +591,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
             x: e.clientX - viewTransform.x,
             y: e.clientY - viewTransform.y
         });
-    }, [viewTransform, layout]);
+    }, [viewTransform, layout, isLocked]);
 
     const handleMouseMove = useCallback((e) => {
         if (draggingNode) {
@@ -646,10 +652,13 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
     const handleTouchStart = useCallback((e) => {
         if (e.touches.length === 2) {
             // Pinch zoom start
-            e.preventDefault();
-            const distance = getTouchDistance(e.touches[0], e.touches[1]);
-            setLastTouchDistance(distance);
-        } else if (e.touches.length === 1) {
+            if (!isLocked) {
+                e.preventDefault();
+                e.stopPropagation();
+                const distance = getTouchDistance(e.touches[0], e.touches[1]);
+                setLastTouchDistance(distance);
+            }
+        } else if (e.touches.length === 1 && !isLocked) {
             // Single touch - check if it's on a node
             const touch = e.touches[0];
             const target = document.elementFromPoint(touch.clientX, touch.clientY);
@@ -697,12 +706,13 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                 y: touch.clientY - viewTransform.y
             });
         }
-    }, [viewTransform, layout]);
+    }, [viewTransform, layout, isLocked]);
 
     const handleTouchMove = useCallback((e) => {
-        if (e.touches.length === 2 && lastTouchDistance && viewTransform) {
+        if (e.touches.length === 2 && lastTouchDistance && viewTransform && !isLocked) {
             // Pinch zoom
             e.preventDefault();
+            e.stopPropagation();
             const distance = getTouchDistance(e.touches[0], e.touches[1]);
             const scale = distance / lastTouchDistance;
 
@@ -722,7 +732,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
 
             setViewTransform({ x: newX, y: newY, scale: newScale });
             setLastTouchDistance(distance);
-        } else if (e.touches.length === 1) {
+        } else if (e.touches.length === 1 && !isLocked) {
             const touch = e.touches[0];
 
             if (draggingNode && containerRef.current) {
@@ -764,7 +774,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                 }));
             }
         }
-    }, [lastTouchDistance, viewTransform, draggingNode, touchStart, nodeDragStart, layout]);
+    }, [lastTouchDistance, viewTransform, draggingNode, touchStart, nodeDragStart, layout, isLocked]);
 
     const handleTouchEnd = useCallback(() => {
         setLastTouchDistance(null);
@@ -817,6 +827,40 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
     const resetView = useCallback(() => {
         zoomToFit();
     }, [zoomToFit]);
+
+    const zoomIn = useCallback(() => {
+        if (!viewTransform || !containerRef.current) return;
+
+        const newScale = Math.min(viewTransform.scale * 1.2, 3);
+        const rect = containerRef.current.getBoundingClientRect();
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+
+        const canvasX = (centerX - viewTransform.x) / viewTransform.scale;
+        const canvasY = (centerY - viewTransform.y) / viewTransform.scale;
+
+        const newX = centerX - canvasX * newScale;
+        const newY = centerY - canvasY * newScale;
+
+        setViewTransform({ x: newX, y: newY, scale: newScale });
+    }, [viewTransform]);
+
+    const zoomOut = useCallback(() => {
+        if (!viewTransform || !containerRef.current) return;
+
+        const newScale = Math.max(viewTransform.scale * 0.8, 0.1);
+        const rect = containerRef.current.getBoundingClientRect();
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+
+        const canvasX = (centerX - viewTransform.x) / viewTransform.scale;
+        const canvasY = (centerY - viewTransform.y) / viewTransform.scale;
+
+        const newX = centerX - canvasX * newScale;
+        const newY = centerY - canvasY * newScale;
+
+        setViewTransform({ x: newX, y: newY, scale: newScale });
+    }, [viewTransform]);
 
     useEffect(() => {
         if (layout.positions.size > 0 && containerRef.current && !initialZoomSet) {
@@ -887,10 +931,19 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            style={{ cursor: draggingNode ? 'grabbing' : (isDragging ? 'grabbing' : 'grab') }}
+            style={{ cursor: isLocked ? 'default' : (draggingNode ? 'grabbing' : (isDragging ? 'grabbing' : 'grab')), touchAction: 'none' }}
         >
             <div className="gen-view-controls">
+                <button className="gen-control-btn" onClick={zoomIn} title="Zoom in">+</button>
+                <button className="gen-control-btn" onClick={zoomOut} title="Zoom out">−</button>
                 <button className="gen-control-btn" onClick={resetView} title="Fit to screen">⛶</button>
+                <button
+                    className={`gen-control-btn ${isLocked ? 'active' : ''}`}
+                    onClick={() => setIsLocked(!isLocked)}
+                    title={isLocked ? "Unlock" : "Lock"}
+                >
+                    {isLocked ? '🔒' : '🔓'}
+                </button>
             </div>
 
             {viewTransform && (

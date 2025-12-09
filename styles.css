@@ -1098,7 +1098,7 @@
             position: fixed;
             inset: 0;
             background: transparent;
-            z-index: 899;
+            z-index: 898;
         }
 
         /* Mobile FAB Menu */
@@ -1113,6 +1113,7 @@
             padding: 8px;
             min-width: 200px;
             animation: slideIn 0.2s ease;
+            z-index: 901;
         }
 
         .mobile-fab-menu-item {
@@ -1670,7 +1671,7 @@
             padding: 8px;
             border-radius: var(--radius-md);
             box-shadow: var(--shadow-soft);
-            z-index: 1000;
+            z-index: 100;
         }
 
         .gen-control-btn {
@@ -1699,12 +1700,19 @@
             transform: scale(0.95);
         }
 
+        .gen-control-btn.active {
+            background: var(--accent-warm);
+            color: white;
+        }
+
         /* Mobile controls */
         @media (max-width: 900px) {
             .gen-view-controls {
                 top: 16px;
                 right: 16px;
                 padding: 6px;
+                flex-wrap: wrap;
+                max-width: 160px;
             }
 
             .gen-control-btn {
@@ -1712,6 +1720,14 @@
                 height: 48px;
                 font-size: 1.4rem;
                 border: 1px solid var(--border-subtle);
+            }
+
+            .gen-control-btn:not(.mobile-hide) {
+                display: flex;
+            }
+
+            .gen-control-btn.mobile-hide {
+                display: none;
             }
         }
 
