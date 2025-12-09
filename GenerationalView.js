@@ -224,7 +224,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
         dagre.layout(dagreGraph);
 
         const positions = new Map();
-        const marriageNodePositions = new Map();
+        const calculatedMarriageNodePositions = new Map();
 
         // First pass: Get initial positions from Dagre
         const initialPositions = new Map();
@@ -314,19 +314,19 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
                     xPos = (parent1CenterX + parent2CenterX) / 2;
                 }
 
-                // Check if we have a custom dragged position
+                // Check if we have a custom dragged position from state
                 const customPos = marriageNodePositions.get(nodeId);
                 if (customPos) {
                     xPos = customPos.x;
                 }
 
-                marriageNodePositions.set(nodeId, {
+                calculatedMarriageNodePositions.set(nodeId, {
                     x: xPos,
                     y: pos.y + yOffset,
                     size: MARRIAGE_SIZE
                 });
             } else {
-                marriageNodePositions.set(nodeId, pos);
+                calculatedMarriageNodePositions.set(nodeId, pos);
             }
         });
 
@@ -357,7 +357,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
                 marriages.forEach((marriage, stackIndex) => {
                     // Only adjust each marriage node once
                     if (!adjustedMarriages.has(marriage.marriageId)) {
-                        const marriagePos = marriageNodePositions.get(marriage.marriageId);
+                        const marriagePos = calculatedMarriageNodePositions.get(marriage.marriageId);
 
                         if (marriagePos) {
                             const personPos = positions.get(personId);
@@ -375,7 +375,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
 
         return {
             positions,
-            marriageNodePositions,
+            marriageNodePositions: calculatedMarriageNodePositions,
             CARD_WIDTH,
             CARD_HEIGHT,
             MARRIAGE_SIZE,
@@ -609,8 +609,8 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
             // Calculate new X position only (constrain to horizontal movement)
             let newX = mouseX - nodeDragStart.x;
 
-            // Snap to 80px grid
-            const GRID_SIZE = 80;
+            // Snap to 20px grid
+            const GRID_SIZE = 20;
             newX = Math.round(newX / GRID_SIZE) * GRID_SIZE;
 
             // Check if dragging a person node or marriage node
@@ -703,10 +703,10 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
         zoomToFit();
     }, [zoomToFit]);
 
-    // Auto zoom-to-fit on initial load and when switching to this view
+    // Auto zoom-to-fit on initial load only (not when dragging nodes)
     useEffect(() => {
-        if (layout.positions.size > 0 && containerRef.current) {
-            // Immediately calculate and set zoom-to-fit on layout changes
+        if (layout.positions.size > 0 && containerRef.current && !initialZoomSet) {
+            // Only auto zoom-to-fit on initial load, not when nodes are dragged
             const { positions, marriageNodePositions } = layout;
 
             // Get bounds of all cards
@@ -747,8 +747,9 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
             const y = (viewportHeight - contentHeight * scale) / 2 - minY * scale;
 
             setViewTransform({ x, y, scale });
+            setInitialZoomSet(true);
         }
-    }, [layout]);
+    }, [layout, initialZoomSet]);
 
     const getInitials = (name) => {
         if (!name) return '?';
@@ -778,7 +779,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
         >
             {/* Zoom controls */}
             <div className="gen-view-controls">
-                <button className="gen-control-btn" onClick={resetView} title="Reset view">🎯</button>
+                <button className="gen-control-btn" onClick={resetView} title="Fit to screen">⛶</button>
             </div>
 
             {/* Canvas with transform */}
