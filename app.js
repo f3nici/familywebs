@@ -52,16 +52,14 @@
             return Math.random().toString(36).substr(2, 9);
         };
 
-        // Relationship Calculator
-        // Expose it globally so it can be used by FluidTreeWithReactFlow and GenerationalView
+        // Calculate relationship between two people in the tree
         const calculateRelationship = (fromPersonId, toPersonId, treeData) => {
             if (fromPersonId === toPersonId) return 'Self';
             if (!treeData.people[fromPersonId] || !treeData.people[toPersonId]) return null;
 
-            // Build family maps
-            const parentMap = new Map(); // personId -> [parent1Id, parent2Id]
-            const childrenMap = new Map(); // personId -> [child1Id, child2Id, ...]
-            const spouseMap = new Map(); // personId -> [spouse1Id, spouse2Id, ...]
+            const parentMap = new Map();
+            const childrenMap = new Map();
+            const spouseMap = new Map();
 
             treeData.mariages.forEach(marriage => {
                 if (marriage.length < 2) return;
@@ -75,7 +73,6 @@
                     if (!spouseMap.get(parent2).includes(parent1)) spouseMap.get(parent2).push(parent1);
                 }
 
-                // Track parent-child relationships
                 children.forEach(childId => {
                     if (!parentMap.has(childId)) {
                         parentMap.set(childId, [parent1, parent2].filter(Boolean));
@@ -91,34 +88,25 @@
                 });
             });
 
-            // Check direct relationships first
-            // Spouse
             if (spouseMap.get(fromPersonId)?.includes(toPersonId)) {
                 return 'Spouse';
             }
 
-            // Parent
             if (parentMap.get(fromPersonId)?.includes(toPersonId)) {
                 return 'Parent';
             }
 
-            // Child
             if (childrenMap.get(fromPersonId)?.includes(toPersonId)) {
                 return 'Child';
             }
 
-            // Sibling
             const fromParents = parentMap.get(fromPersonId);
             const toParents = parentMap.get(toPersonId);
             if (fromParents && toParents && fromParents.some(p => toParents.includes(p))) {
                 return 'Sibling';
             }
 
-            // Step-sibling (children of step-parent)
-            // Check if any of fromPerson's parents are married to any of toPerson's parents
-            // but they don't share a biological parent
             if (fromParents && toParents && !fromParents.some(p => toParents.includes(p))) {
-                // They don't share a parent, check if their parents are married
                 for (const fromParent of fromParents) {
                     const fromParentSpouses = spouseMap.get(fromParent) || [];
                     for (const toParent of toParents) {
@@ -129,7 +117,6 @@
                 }
             }
 
-            // Find path through ancestors
             const getAncestors = (personId, generations = 0, maxGen = 10) => {
                 const ancestors = [{ id: personId, generation: generations }];
                 if (generations >= maxGen) return ancestors;
@@ -148,7 +135,6 @@
             const fromAncestors = getAncestors(fromPersonId);
             const toAncestors = getAncestors(toPersonId);
 
-            // Find common ancestor
             for (const fromAnc of fromAncestors) {
                 for (const toAnc of toAncestors) {
                     if (fromAnc.id === toAnc.id && fromAnc.generation > 0) {
@@ -156,31 +142,24 @@
                         const fromGen = fromAnc.generation;
                         const toGen = toAnc.generation;
 
-                        // Check if one is ancestor of the other
                         if (fromGen === 0) {
-                            // fromPerson is the common ancestor, so toPerson is a descendant of fromPerson
                             if (toGen === 1) return 'Child';
                             if (toGen === 2) return 'Grandchild';
                             if (toGen === 3) return 'Great-grandchild';
                             return `${toGen - 2}x Great-grandchild`;
                         }
                         if (toGen === 0) {
-                            // toPerson is the common ancestor, so toPerson is an ancestor of fromPerson
                             if (fromGen === 1) return 'Parent';
                             if (fromGen === 2) return 'Grandparent';
                             if (fromGen === 3) return 'Great-grandparent';
                             return `${fromGen - 2}x Great-grandparent`;
                         }
 
-                        // Cousins and extended family
                         if (fromGen === 1 && toGen === 1) {
-                            // Same generation, one generation down from common ancestor
-                            // Already handled as siblings above
                             continue;
                         }
 
                         if (fromGen === 2 && toGen === 1) {
-                            // toPerson is parent's sibling
                             const toGender = treeData.people[toPersonId]?.gender;
                             if (toGender === 'MALE') return 'Uncle';
                             if (toGender === 'FEMALE') return 'Aunt';
@@ -188,7 +167,6 @@
                         }
 
                         if (fromGen === 1 && toGen === 2) {
-                            // fromPerson is sibling of toPerson's parent
                             const fromGender = treeData.people[fromPersonId]?.gender;
                             if (fromGender === 'MALE') return 'Nephew';
                             if (fromGender === 'FEMALE') return 'Niece';
@@ -196,7 +174,6 @@
                         }
 
                         if (fromGen === toGen && fromGen >= 2) {
-                            // Cousins - same generation
                             const cousinDegree = fromGen - 1;
                             if (cousinDegree === 1) return '1st Cousin';
                             if (cousinDegree === 2) return '2nd Cousin';
@@ -205,7 +182,6 @@
                         }
 
                         if (fromGen !== toGen && Math.min(fromGen, toGen) >= 2) {
-                            // Cousins removed
                             const minGen = Math.min(fromGen, toGen);
                             const maxGen = Math.max(fromGen, toGen);
                             const cousinDegree = minGen - 1;
@@ -219,7 +195,6 @@
                             return `${cousinDegree}${degreeSuffix} Cousin ${timesRemoved}x Removed`;
                         }
 
-                        // Great-aunt/uncle or great-niece/nephew
                         if (fromGen > toGen && toGen === 1) {
                             const greats = fromGen - 2;
                             const toGender = treeData.people[toPersonId]?.gender;
@@ -251,11 +226,9 @@
                 }
             }
 
-            // Check in-law relationships
             const fromSpouses = spouseMap.get(fromPersonId) || [];
             const toSpouses = spouseMap.get(toPersonId) || [];
 
-            // Check if toPerson is spouse's family
             for (const spouseId of fromSpouses) {
                 if (parentMap.get(spouseId)?.includes(toPersonId)) {
                     return 'Parent-in-law';
@@ -270,7 +243,6 @@
                 }
             }
 
-            // Check if fromPerson is spouse's family
             for (const spouseId of toSpouses) {
                 if (parentMap.get(spouseId)?.includes(fromPersonId)) {
                     return 'Child-in-law';
@@ -283,10 +255,8 @@
             return 'Distant Relative';
         };
 
-        // Make calculateRelationship available globally for use by other components
         window.calculateRelationship = calculateRelationship;
 
-        // Initial empty tree data
         const emptyTreeData = {
             id: generateId(),
             createdAt: new Date().toISOString(),
@@ -304,7 +274,6 @@
             homePerson: null
         };
 
-        // Person Card Component
         const PersonCard = ({ person, personId, isSelected, onClick, isEditMode, compact = false, isHomePerson = false, relationship = null }) => {
             const birthEvent = person.events?.find(e => e.type === '$_BIRTH');
             const deathEvent = person.events?.find(e => e.type === '$_DEATH');
@@ -350,7 +319,6 @@
             );
         };
 
-        // Person List Item
         const PersonListItem = ({ person, personId, isSelected, onClick, isHomePerson, relationship, onSetHomePerson }) => {
             const birthEvent = person.events?.find(e => e.type === '$_BIRTH');
             const deathEvent = person.events?.find(e => e.type === '$_DEATH');
@@ -404,7 +372,6 @@
             );
         };
 
-        // Detail Panel Component
         const DetailPanel = ({ person, personId, treeData, isEditMode, onUpdate, onClose, onSelectPerson }) => {
             const [editedPerson, setEditedPerson] = useState({...person});
             
@@ -730,7 +697,6 @@
             );
         };
 
-        // Add Person Modal
         const AddPersonModal = ({ isOpen, onClose, onAdd, treeData }) => {
             const [newPerson, setNewPerson] = useState({
                 name: '',
@@ -835,7 +801,6 @@
             );
         };
 
-        // Add Marriage Modal
         const AddMarriageModal = ({ isOpen, onClose, onAdd, treeData }) => {
             const [spouse1, setSpouse1] = useState('');
             const [spouse2, setSpouse2] = useState('');
@@ -999,7 +964,6 @@
             );
         };
 
-        // Delete Person Modal
         const DeletePersonModal = ({ isOpen, onClose, onDelete, treeData }) => {
             const [searchQuery, setSearchQuery] = useState('');
             const [selectedPerson, setSelectedPerson] = useState('');
@@ -1086,7 +1050,6 @@
             );
         };
 
-        // Edit Relationship Modal
         const EditRelationshipModal = ({ isOpen, onClose, onUpdate, onDelete, treeData }) => {
             const [searchQuery, setSearchQuery] = useState('');
             const [selectedRelationship, setSelectedRelationship] = useState(-1);
@@ -1369,7 +1332,6 @@
             );
         };
 
-        // Help Modal
         const HelpModal = ({ isOpen, onClose }) => {
             if (!isOpen) return null;
 
@@ -1448,42 +1410,9 @@
             );
         };
 
-        // OLD Fluid Tree View - Simple grid layout (replaced with FluidTreeWithReactFlow)
-        // Kept here for reference, but no longer used in the main app
-        /*
-        const FluidTreeView = ({ treeData, selectedPerson, onSelectPerson, isEditMode }) => {
-            const sortedPeople = useMemo(() => {
-                return Object.entries(treeData.people).sort((a, b) => {
-                    const birthA = a[1].events?.find(e => e.type === '$_BIRTH')?.dateStart || '9999';
-                    const birthB = b[1].events?.find(e => e.type === '$_BIRTH')?.dateStart || '9999';
-                    return birthA.localeCompare(birthB);
-                });
-            }, [treeData.people]);
-
-            return (
-                <div className="fluid-tree">
-                    {sortedPeople.map(([personId, person]) => (
-                        <PersonCard
-                            key={personId}
-                            person={person}
-                            personId={personId}
-                            isSelected={selectedPerson === personId}
-                            onClick={onSelectPerson}
-                            isEditMode={isEditMode}
-                            compact={true}
-                        />
-                    ))}
-                </div>
-            );
-        };
-        */
-
-        // NOTE: Now using FluidTreeWithReactFlow component from FluidTreeWithReactFlow.js
-        // which provides relationship lines, marriage nodes, and Web Mode functionality
         const FluidTreeWithReactFlow = window.FluidTreeWithReactFlow;
         const GenerationalView = window.GenerationalView;
 
-        // Main App Component
         const FamilyTreeApp = () => {
             const [treeData, setTreeData] = useState(null);
             const [isEditMode, setIsEditMode] = useState(true);
@@ -1497,10 +1426,9 @@
             const [viewMode, setViewMode] = useState('web'); // 'web' or 'generational'
 
             const fileInputRef = useRef(null);
-            const getNodePositionsRef = useRef(null); // Callback to get current node positions from FluidTree
-            const getGenerationalViewStateRef = useRef(null); // Callback to get current state from GenerationalView
+            const getNodePositionsRef = useRef(null);
+            const getGenerationalViewStateRef = useRef(null);
 
-            // Filter people based on search
             const filteredPeople = useMemo(() => {
                 if (!treeData) return [];
                 return Object.entries(treeData.people).filter(([id, person]) => {
@@ -1509,9 +1437,7 @@
                 });
             }, [treeData, searchQuery]);
 
-            // Load sample data on mount
             useEffect(() => {
-                // Check if there's data in localStorage
                 const saved = localStorage.getItem('familyTreeData');
                 if (saved) {
                     try {
@@ -1522,7 +1448,6 @@
                 }
             }, []);
 
-            // Save to localStorage when data changes
             useEffect(() => {
                 if (treeData) {
                     localStorage.setItem('familyTreeData', JSON.stringify(treeData));
@@ -1549,19 +1474,15 @@
             const handleDownload = () => {
                 if (!treeData) return;
 
-                // Get current node positions from FluidTreeWithReactFlow and GenerationalView
                 let dataToExport = { ...treeData };
 
-                // Initialize viewState object if it doesn't exist
                 if (!dataToExport.viewState) {
                     dataToExport.viewState = {};
                 }
 
-                // Save Web View state (maintains backward compatibility)
                 if (getNodePositionsRef.current) {
                     const nodePositions = getNodePositionsRef.current();
                     if (nodePositions && nodePositions.length > 0) {
-                        // Save node positions to viewState.nodes (existing format)
                         dataToExport.viewState.nodes = nodePositions.map(node => ({
                             id: node.id,
                             x: node.position.x,
@@ -1570,7 +1491,6 @@
                     }
                 }
 
-                // Save Generational View state (new format)
                 if (getGenerationalViewStateRef.current) {
                     const generationalViewState = getGenerationalViewStateRef.current();
                     if (generationalViewState) {
@@ -1578,7 +1498,6 @@
                     }
                 }
 
-                // Clean up people data - remove unused fields
                 const cleanedPeople = {};
                 Object.entries(dataToExport.people).forEach(([id, person]) => {
                     const { surnameAssumed, surnameAssmed, photos, attachments, ...cleanPerson } = person;
@@ -1586,7 +1505,6 @@
                 });
                 dataToExport.people = cleanedPeople;
 
-                // Remove unused top-level fields
                 delete dataToExport.events;
                 delete dataToExport.credits;
 
@@ -1714,19 +1632,14 @@
                     const newPeople = {...prev.people};
                     delete newPeople[personId];
 
-                    // Remove from marriages
-                    // Marriage structure: [parent1, parent2, child1, child2, ...]
-                    // If person is a parent (first two positions), remove entire relationship
-                    // If person is a child, just remove them from the relationship
                     const newMarriages = prev.mariages
                         .filter(m => {
-                            // If person is one of the parents (first two positions), remove entire relationship
                             if (m[0] === personId || m[1] === personId) {
                                 return false;
                             }
                             return true;
                         })
-                        .map(m => m.filter(id => id !== personId)); // Remove person if they're a child
+                        .map(m => m.filter(id => id !== personId));
 
                     return {
                         ...prev,
@@ -1777,8 +1690,6 @@
                 }));
             };
 
-
-            // Welcome screen if no data loaded
             if (!treeData) {
                 return (
                     <div className="app-container">
@@ -1813,7 +1724,6 @@
 
             return (
                 <div className="app-container">
-                    {/* Header */}
                     <header className="header">
                         <div className="logo">
                             <div className="logo-icon" style={{background: 'none', borderRadius: '0'}}>
@@ -1841,7 +1751,6 @@
                         </div>
 
                         <div className="header-actions">
-                            {/* View Mode Toggle */}
                             <div className="view-mode-tabs">
                                 <button
                                     className={`view-tab ${viewMode === 'web' ? 'active' : ''}`}
@@ -1857,7 +1766,6 @@
                                 </button>
                             </div>
 
-                            {/* Edit Mode Toggle */}
                             <div className="toggle-container">
                                 <span className="toggle-label">{isEditMode ? 'Edit Mode' : 'View Only'}</span>
                                 <div
@@ -1889,9 +1797,7 @@
                         </div>
                     </header>
 
-                    {/* Main Content */}
                     <div className="main-content">
-                        {/* Sidebar - People List */}
                         <aside className="sidebar">
                             <div className="sidebar-header">
                                 <h2 className="sidebar-title">Family Members</h2>
@@ -1972,7 +1878,6 @@
                             )}
                         </aside>
 
-                        {/* Tree Canvas */}
                         <main className="tree-canvas">
                             {Object.keys(treeData.people).length > 0 ? (
                                 viewMode === 'web' ? (
@@ -2018,7 +1923,6 @@
                             )}
                         </main>
 
-                        {/* Detail Panel */}
                         {selectedPerson && treeData.people[selectedPerson] && (
                             <DetailPanel 
                                 person={treeData.people[selectedPerson]}
@@ -2032,7 +1936,6 @@
                         )}
                     </div>
 
-                    {/* Modals */}
                     <AddPersonModal
                         isOpen={showAddPersonModal}
                         onClose={() => setShowAddPersonModal(false)}
@@ -2066,6 +1969,5 @@
             );
         };
 
-        // Render the app
         ReactDOM.render(<FamilyTreeApp />, document.getElementById('root'));
         window.__FAMILY_TREE_APP_READY__?.();
