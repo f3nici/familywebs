@@ -1417,6 +1417,7 @@
 
             const fileInputRef = useRef(null);
             const getNodePositionsRef = useRef(null); // Callback to get current node positions from FluidTree
+            const getGenerationalViewStateRef = useRef(null); // Callback to get current state from GenerationalView
 
             // Filter people based on search
             const filteredPeople = useMemo(() => {
@@ -1467,19 +1468,32 @@
             const handleDownload = () => {
                 if (!treeData) return;
 
-                // Get current node positions from FluidTreeWithReactFlow
+                // Get current node positions from FluidTreeWithReactFlow and GenerationalView
                 let dataToExport = { ...treeData };
+
+                // Initialize viewState object if it doesn't exist
+                if (!dataToExport.viewState) {
+                    dataToExport.viewState = {};
+                }
+
+                // Save Web View state (maintains backward compatibility)
                 if (getNodePositionsRef.current) {
                     const nodePositions = getNodePositionsRef.current();
                     if (nodePositions && nodePositions.length > 0) {
-                        // Save node positions to viewState
-                        dataToExport.viewState = {
-                            nodes: nodePositions.map(node => ({
-                                id: node.id,
-                                x: node.position.x,
-                                y: node.position.y
-                            }))
-                        };
+                        // Save node positions to viewState.nodes (existing format)
+                        dataToExport.viewState.nodes = nodePositions.map(node => ({
+                            id: node.id,
+                            x: node.position.x,
+                            y: node.position.y
+                        }));
+                    }
+                }
+
+                // Save Generational View state (new format)
+                if (getGenerationalViewStateRef.current) {
+                    const generationalViewState = getGenerationalViewStateRef.current();
+                    if (generationalViewState) {
+                        dataToExport.viewState.generationalView = generationalViewState;
                     }
                 }
 
@@ -1888,6 +1902,7 @@
                                             treeData={treeData}
                                             selectedPerson={selectedPerson}
                                             onSelectPerson={setSelectedPerson}
+                                            getGenerationalViewStateRef={getGenerationalViewStateRef}
                                         />
                                     </div>
                                 )

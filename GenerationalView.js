@@ -3,17 +3,71 @@
 // Infinite canvas with proper hierarchical generation calculation
 // ==========================================
 
-const GenerationalView = ({ treeData, selectedPerson, onSelectPerson }) => {
+const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerationalViewStateRef }) => {
     const { useMemo, useRef, useState, useCallback, useEffect } = React;
     const containerRef = useRef(null);
-    const [viewTransform, setViewTransform] = useState(null);
+
+    // Load initial state from saved viewState if available
+    const initialViewState = useMemo(() => {
+        const savedState = treeData.viewState?.generationalView;
+        if (!savedState) return { viewTransform: null, nodePositions: new Map(), marriageNodePositions: new Map() };
+
+        // Convert saved arrays to Maps
+        const nodePositionsMap = new Map();
+        if (savedState.nodePositions) {
+            savedState.nodePositions.forEach(({ id, x, y }) => {
+                nodePositionsMap.set(id, { x, y });
+            });
+        }
+
+        const marriageNodePositionsMap = new Map();
+        if (savedState.marriageNodePositions) {
+            savedState.marriageNodePositions.forEach(({ id, x, y }) => {
+                marriageNodePositionsMap.set(id, { x, y });
+            });
+        }
+
+        return {
+            viewTransform: savedState.viewTransform || null,
+            nodePositions: nodePositionsMap,
+            marriageNodePositions: marriageNodePositionsMap
+        };
+    }, []); // Only run once on mount
+
+    const [viewTransform, setViewTransform] = useState(initialViewState.viewTransform);
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-    const [initialZoomSet, setInitialZoomSet] = useState(false);
+    const [initialZoomSet, setInitialZoomSet] = useState(!!initialViewState.viewTransform);
     const [draggingNode, setDraggingNode] = useState(null);
     const [nodeDragStart, setNodeDragStart] = useState({ x: 0, y: 0 });
-    const [nodePositions, setNodePositions] = useState(new Map());
-    const [marriageNodePositions, setMarriageNodePositions] = useState(new Map());
+    const [nodePositions, setNodePositions] = useState(initialViewState.nodePositions);
+    const [marriageNodePositions, setMarriageNodePositions] = useState(initialViewState.marriageNodePositions);
+
+    // Expose state getter function to parent component via ref
+    useEffect(() => {
+        if (getGenerationalViewStateRef) {
+            getGenerationalViewStateRef.current = () => {
+                // Convert Maps to arrays for JSON serialization
+                const nodePositionsArray = Array.from(nodePositions.entries()).map(([id, pos]) => ({
+                    id,
+                    x: pos.x,
+                    y: pos.y
+                }));
+
+                const marriageNodePositionsArray = Array.from(marriageNodePositions.entries()).map(([id, pos]) => ({
+                    id,
+                    x: pos.x,
+                    y: pos.y
+                }));
+
+                return {
+                    viewTransform: viewTransform,
+                    nodePositions: nodePositionsArray,
+                    marriageNodePositions: marriageNodePositionsArray
+                };
+            };
+        }
+    }, [viewTransform, nodePositions, marriageNodePositions, getGenerationalViewStateRef]);
 
     // STEP 1: Calculate generations with proper conflict resolution
     const generationData = useMemo(() => {
