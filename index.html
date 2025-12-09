@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Family Webs - Interactive Family Tree</title>
     <link rel="icon" type="image/png" href="assets/logo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -22,8 +25,8 @@
     <!-- Dagre for Generational View auto-layout -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dagre/0.8.5/dagre.min.js"></script>
 
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="react-flow-styles.css">
+    <link rel="stylesheet" href="styles.css?v=nocache">
+    <link rel="stylesheet" href="react-flow-styles.css?v=nocache">
 </head>
 <body>
     <div id="root" class="app-placeholder">
@@ -75,7 +78,7 @@
         type="text/babel"
         data-presets="env,react"
         data-plugins="proposal-class-properties,proposal-object-rest-spread"
-        src="FluidTreeWithReactFlow.js"
+        src="FluidTreeWithReactFlow.js?v=nocache"
     ></script>
 
     <!-- Generational View Component -->
@@ -83,7 +86,7 @@
         type="text/babel"
         data-presets="env,react"
         data-plugins="proposal-class-properties,proposal-object-rest-spread"
-        src="GenerationalView.js"
+        src="GenerationalView.js?v=nocache"
     ></script>
 
     <!-- Main App -->
@@ -91,7 +94,7 @@
         type="text/babel"
         data-presets="env,react"
         data-plugins="proposal-class-properties,proposal-object-rest-spread"
-        src="app.js"
+        src="app.js?v=nocache"
     ></script>
 </body>
 </html>
