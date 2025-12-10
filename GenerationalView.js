@@ -827,6 +827,15 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
         zoomToFit();
     }, [zoomToFit]);
 
+    const recalculateLayout = useCallback(() => {
+        setNodePositions(new Map());
+        setMarriageNodePositions(new Map());
+        // Reset zoom after a short delay to allow layout to recalculate
+        setTimeout(() => {
+            zoomToFit();
+        }, 100);
+    }, [zoomToFit]);
+
     const zoomIn = useCallback(() => {
         if (!viewTransform || !containerRef.current) return;
 
@@ -942,6 +951,13 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                     title={isLocked ? "Unlock" : "Lock"}
                 >
                     {isLocked ? '🔒' : '🔓'}
+                </button>
+                <button
+                    className="gen-control-btn"
+                    onClick={recalculateLayout}
+                    title="Recalculate layout (reset all custom positions)"
+                >
+                    ↻
                 </button>
             </div>
 
