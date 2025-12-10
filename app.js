@@ -462,7 +462,7 @@
             };
 
             return (
-                <div className="detail-panel slide-in">
+                <div className="detail-panel-content slide-in">
                     <div className="detail-header">
                         <div>
                             <div className={`detail-avatar ${avatarClass}`}>
@@ -1427,6 +1427,7 @@
             const [showMobileMenu, setShowMobileMenu] = useState(false);
             const [showMobileDetailPanel, setShowMobileDetailPanel] = useState(false);
             const [showMobileFabMenu, setShowMobileFabMenu] = useState(false);
+            const [isMobile, setIsMobile] = useState(window.innerWidth <= 900);
 
             const fileInputRef = useRef(null);
             const getNodePositionsRef = useRef(null);
@@ -1456,6 +1457,42 @@
                     localStorage.setItem('familyTreeData', JSON.stringify(treeData));
                 }
             }, [treeData]);
+
+            useEffect(() => {
+                const handleResize = () => setIsMobile(window.innerWidth <= 900);
+                window.addEventListener('resize', handleResize);
+                return () => window.removeEventListener('resize', handleResize);
+            }, []);
+
+            const mobileDetailPanelStyle = useMemo(() => {
+                if (!isMobile) return {};
+                return {
+                    position: 'fixed',
+                    top: '50%',
+                    left: '50%',
+                    transform: showMobileDetailPanel
+                        ? 'translate(-50%, -50%) scale(1)'
+                        : 'translate(-50%, -50%) scale(0.9)',
+                    opacity: showMobileDetailPanel ? 1 : 0,
+                    pointerEvents: showMobileDetailPanel ? 'auto' : 'none',
+                    width: '90%',
+                    maxWidth: '400px',
+                    minHeight: '60vh',
+                    maxHeight: '85vh',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    overflowY: 'auto',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: 'var(--radius-lg)',
+                    background: 'var(--bg-card)',
+                    color: 'var(--text-primary)',
+                    boxShadow: showMobileDetailPanel
+                        ? '0 8px 32px rgba(44, 36, 22, 0.3)'
+                        : 'none',
+                    transition: 'transform 0.3s ease, opacity 0.3s ease',
+                    zIndex: 1000
+                };
+            }, [isMobile, showMobileDetailPanel]);
 
             const handleFileUpload = (event) => {
                 const file = event.target.files[0];
@@ -2014,8 +2051,8 @@
 
                         {selectedPerson && treeData.people[selectedPerson] && (
                             <>
-                                {showMobileDetailPanel && <div className="mobile-overlay" onClick={() => {setSelectedPerson(null); setShowMobileDetailPanel(false);}} />}
-                                <div className={`detail-panel ${showMobileDetailPanel ? 'mobile-open' : ''}`}>
+                                {isMobile && showMobileDetailPanel && <div className="mobile-overlay" onClick={() => {setSelectedPerson(null); setShowMobileDetailPanel(false);}} />}
+                                <div className={`detail-panel ${isMobile && showMobileDetailPanel ? 'mobile-open' : ''}`} style={mobileDetailPanelStyle}>
                                     <DetailPanel
                                         person={treeData.people[selectedPerson]}
                                         personId={selectedPerson}
