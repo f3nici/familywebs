@@ -376,14 +376,18 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
 
                 marriages.forEach((marriage, stackIndex) => {
                     if (!adjustedMarriages.has(marriage.marriageId)) {
-                        const marriagePos = calculatedMarriageNodePositions.get(marriage.marriageId);
+                        // Skip auto-adjustment if there's a custom position
+                        const hasCustomPosition = marriageNodePositions.has(marriage.marriageId);
+                        if (!hasCustomPosition) {
+                            const marriagePos = calculatedMarriageNodePositions.get(marriage.marriageId);
 
-                        if (marriagePos) {
-                            const personPos = positions.get(personId);
-                            if (personPos) {
-                                const offset = MARRIAGE_BASE_OFFSET + (stackIndex * MARRIAGE_STACK_OFFSET);
-                                marriagePos.y = personPos.y + CARD_HEIGHT + offset;
-                                adjustedMarriages.add(marriage.marriageId);
+                            if (marriagePos) {
+                                const personPos = positions.get(personId);
+                                if (personPos) {
+                                    const offset = MARRIAGE_BASE_OFFSET + (stackIndex * MARRIAGE_STACK_OFFSET);
+                                    marriagePos.y = personPos.y + CARD_HEIGHT + offset;
+                                    adjustedMarriages.add(marriage.marriageId);
+                                }
                             }
                         }
                     }
