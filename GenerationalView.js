@@ -346,6 +346,10 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                     const parent1CenterX = parent1Pos.x + CARD_WIDTH / 2;
                     const parent2CenterX = parent2Pos.x + CARD_WIDTH / 2;
                     xPos = (parent1CenterX + parent2CenterX) / 2;
+
+                    const parent1BottomY = parent1Pos.y + CARD_HEIGHT;
+                    const parent2BottomY = parent2Pos.y + CARD_HEIGHT;
+                    yPos = (parent1BottomY + parent2BottomY) / 2;
                 }
 
                 const customPos = marriageNodePositions.get(nodeId);
