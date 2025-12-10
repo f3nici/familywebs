@@ -1479,15 +1479,18 @@
                     maxWidth: '400px',
                     minHeight: '60vh',
                     maxHeight: '85vh',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    overflowY: 'auto',
                     border: '1px solid var(--border-subtle)',
                     borderRadius: 'var(--radius-lg)',
                     background: 'var(--bg-card)',
+                    color: 'var(--text-primary)',
                     boxShadow: showMobileDetailPanel
                         ? '0 8px 32px rgba(44, 36, 22, 0.3)'
                         : 'none',
                     transition: 'transform 0.3s ease, opacity 0.3s ease',
-                    zIndex: 1000,
-                    overflow: 'hidden'
+                    zIndex: 1000
                 };
             }, [isMobile, showMobileDetailPanel]);
 
