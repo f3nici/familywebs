@@ -330,6 +330,8 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                 const parent2Pos = positions.get(marriage[1]);
 
                 let xPos = pos.x;
+                let yPos = pos.y + yOffset;
+
                 if (parent1Pos && parent2Pos) {
                     const parent1CenterX = parent1Pos.x + CARD_WIDTH / 2;
                     const parent2CenterX = parent2Pos.x + CARD_WIDTH / 2;
@@ -339,11 +341,12 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                 const customPos = marriageNodePositions.get(nodeId);
                 if (customPos) {
                     xPos = customPos.x;
+                    yPos = customPos.y;
                 }
 
                 calculatedMarriageNodePositions.set(nodeId, {
                     x: xPos,
-                    y: pos.y + yOffset,
+                    y: yPos,
                     size: MARRIAGE_SIZE
                 });
             } else {
@@ -552,9 +555,10 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                 if (pos) {
                     const canvasRect = containerRef.current.getBoundingClientRect();
                     const clickX = (e.clientX - canvasRect.left - viewTransform.x) / viewTransform.scale;
+                    const clickY = (e.clientY - canvasRect.top - viewTransform.y) / viewTransform.scale;
                     setNodeDragStart({
                         x: clickX - pos.x,
-                        y: 0
+                        y: clickY - pos.y
                     });
                 }
                 e.stopPropagation();
@@ -596,21 +600,21 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
         if (draggingNode) {
             const canvasRect = containerRef.current.getBoundingClientRect();
             const mouseX = (e.clientX - canvasRect.left - viewTransform.x) / viewTransform.scale;
+            const mouseY = (e.clientY - canvasRect.top - viewTransform.y) / viewTransform.scale;
 
             let newX = mouseX - nodeDragStart.x;
+            let newY = mouseY - nodeDragStart.y;
 
-            const GRID_SIZE = 20;
+            const GRID_SIZE = 40;
             newX = Math.round(newX / GRID_SIZE) * GRID_SIZE;
+            newY = Math.round(newY / GRID_SIZE) * GRID_SIZE;
 
             if (draggingNode.startsWith('marriage-')) {
-                const currentPos = layout.marriageNodePositions.get(draggingNode);
-                if (currentPos) {
-                    setMarriageNodePositions(prev => {
-                        const newPositions = new Map(prev);
-                        newPositions.set(draggingNode, { x: newX, y: currentPos.y });
-                        return newPositions;
-                    });
-                }
+                setMarriageNodePositions(prev => {
+                    const newPositions = new Map(prev);
+                    newPositions.set(draggingNode, { x: newX, y: newY });
+                    return newPositions;
+                });
             } else {
                 const currentPos = layout.positions.get(draggingNode);
                 if (currentPos) {
@@ -670,9 +674,10 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                     if (pos && containerRef.current) {
                         const canvasRect = containerRef.current.getBoundingClientRect();
                         const touchX = (touch.clientX - canvasRect.left - viewTransform.x) / viewTransform.scale;
+                        const touchY = (touch.clientY - canvasRect.top - viewTransform.y) / viewTransform.scale;
                         setNodeDragStart({
                             x: touchX - pos.x,
-                            y: 0
+                            y: touchY - pos.y
                         });
                     }
                     return;
@@ -738,21 +743,21 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                 // Node dragging - only when not locked
                 const canvasRect = containerRef.current.getBoundingClientRect();
                 const touchX = (touch.clientX - canvasRect.left - viewTransform.x) / viewTransform.scale;
+                const touchY = (touch.clientY - canvasRect.top - viewTransform.y) / viewTransform.scale;
 
                 let newX = touchX - nodeDragStart.x;
+                let newY = touchY - nodeDragStart.y;
 
-                const GRID_SIZE = 20;
+                const GRID_SIZE = 40;
                 newX = Math.round(newX / GRID_SIZE) * GRID_SIZE;
+                newY = Math.round(newY / GRID_SIZE) * GRID_SIZE;
 
                 if (draggingNode.startsWith('marriage-')) {
-                    const currentPos = layout.marriageNodePositions.get(draggingNode);
-                    if (currentPos) {
-                        setMarriageNodePositions(prev => {
-                            const newPositions = new Map(prev);
-                            newPositions.set(draggingNode, { x: newX, y: currentPos.y });
-                            return newPositions;
-                        });
-                    }
+                    setMarriageNodePositions(prev => {
+                        const newPositions = new Map(prev);
+                        newPositions.set(draggingNode, { x: newX, y: newY });
+                        return newPositions;
+                    });
                 } else {
                     const currentPos = layout.positions.get(draggingNode);
                     if (currentPos) {
