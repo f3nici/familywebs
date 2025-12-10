@@ -297,22 +297,32 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
             generationYOffsets.set(gen + 1, cumulativeOffset);
         });
 
+        const generationBaseY = new Map();
+        initialPositions.forEach(pos => {
+            const gen = pos.generation || 0;
+            const currentBase = generationBaseY.get(gen);
+            if (currentBase === undefined || pos.y < currentBase) {
+                generationBaseY.set(gen, pos.y);
+            }
+        });
+
         initialPositions.forEach((pos, nodeId) => {
             const gen = pos.generation || 0;
             const yOffset = generationYOffsets.get(gen) || 0;
+            const baseY = generationBaseY.get(gen) ?? pos.y;
 
             const customPos = nodePositions.get(nodeId);
             if (customPos) {
                 positions.set(nodeId, {
                     x: customPos.x,
-                    y: pos.y + yOffset,
+                    y: baseY + yOffset,
                     width: CARD_WIDTH,
                     height: CARD_HEIGHT
                 });
             } else {
                 positions.set(nodeId, {
                     x: pos.x,
-                    y: pos.y + yOffset,
+                    y: baseY + yOffset,
                     width: CARD_WIDTH,
                     height: CARD_HEIGHT
                 });
