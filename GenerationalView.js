@@ -135,6 +135,9 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
 
                 const p1Gen = personGeneration.get(parent1) ?? 0;
                 const p2Gen = personGeneration.get(parent2) ?? 0;
+
+                // Always prioritise spouses sharing the same generation before
+                // pushing children downward.
                 const unifiedGen = Math.max(p1Gen, p2Gen);
 
                 if (p1Gen !== unifiedGen) {
@@ -149,9 +152,10 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
 
                 const childGen = unifiedGen + 1;
                 children.forEach(childId => {
-                    const currentGen = personGeneration.get(childId);
-                    if (currentGen !== childGen) {
-                        personGeneration.set(childId, childGen);
+                    const currentGen = personGeneration.get(childId) ?? 0;
+                    const targetGen = Math.max(currentGen, childGen);
+                    if (currentGen !== targetGen) {
+                        personGeneration.set(childId, targetGen);
                         changed = true;
                     }
                 });
