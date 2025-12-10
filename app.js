@@ -462,7 +462,7 @@
             };
 
             return (
-                <div className="detail-panel slide-in">
+                <div className="detail-panel-content slide-in">
                     <div className="detail-header">
                         <div>
                             <div className={`detail-avatar ${avatarClass}`}>
