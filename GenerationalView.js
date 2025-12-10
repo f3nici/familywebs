@@ -258,6 +258,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
 
         const positions = new Map();
         const calculatedMarriageNodePositions = new Map();
+        const customMarriageY = new Set();
 
         const initialPositions = new Map();
         const initialMarriagePositions = new Map();
@@ -330,6 +331,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                 const parent2Pos = positions.get(marriage[1]);
 
                 let xPos = pos.x;
+                let yPos = pos.y + yOffset;
                 if (parent1Pos && parent2Pos) {
                     const parent1CenterX = parent1Pos.x + CARD_WIDTH / 2;
                     const parent2CenterX = parent2Pos.x + CARD_WIDTH / 2;
@@ -339,11 +341,15 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                 const customPos = marriageNodePositions.get(nodeId);
                 if (customPos) {
                     xPos = customPos.x;
+                    if (typeof customPos.y === 'number') {
+                        yPos = customPos.y;
+                        customMarriageY.add(nodeId);
+                    }
                 }
 
                 calculatedMarriageNodePositions.set(nodeId, {
                     x: xPos,
-                    y: pos.y + yOffset,
+                    y: yPos,
                     size: MARRIAGE_SIZE
                 });
             } else {
@@ -375,7 +381,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                     if (!adjustedMarriages.has(marriage.marriageId)) {
                         const marriagePos = calculatedMarriageNodePositions.get(marriage.marriageId);
 
-                        if (marriagePos) {
+                        if (marriagePos && !customMarriageY.has(marriage.marriageId)) {
                             const personPos = positions.get(personId);
                             if (personPos) {
                                 const offset = MARRIAGE_BASE_OFFSET + (stackIndex * MARRIAGE_STACK_OFFSET);
