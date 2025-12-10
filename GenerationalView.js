@@ -605,9 +605,10 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
             let newX = mouseX - nodeDragStart.x;
             let newY = mouseY - nodeDragStart.y;
 
-            const GRID_SIZE = 40;
-            newX = Math.round(newX / GRID_SIZE) * GRID_SIZE;
-            newY = Math.round(newY / GRID_SIZE) * GRID_SIZE;
+            const GRID_SIZE_X = 20;
+            const GRID_SIZE_Y = 40;
+            newX = Math.round(newX / GRID_SIZE_X) * GRID_SIZE_X;
+            newY = Math.round(newY / GRID_SIZE_Y) * GRID_SIZE_Y;
 
             if (draggingNode.startsWith('marriage-')) {
                 setMarriageNodePositions(prev => {
@@ -748,9 +749,10 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                 let newX = touchX - nodeDragStart.x;
                 let newY = touchY - nodeDragStart.y;
 
-                const GRID_SIZE = 40;
-                newX = Math.round(newX / GRID_SIZE) * GRID_SIZE;
-                newY = Math.round(newY / GRID_SIZE) * GRID_SIZE;
+                const GRID_SIZE_X = 20;
+                const GRID_SIZE_Y = 40;
+                newX = Math.round(newX / GRID_SIZE_X) * GRID_SIZE_X;
+                newY = Math.round(newY / GRID_SIZE_Y) * GRID_SIZE_Y;
 
                 if (draggingNode.startsWith('marriage-')) {
                     setMarriageNodePositions(prev => {
