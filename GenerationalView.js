@@ -442,7 +442,17 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
         });
 
         personMarriagesMap.forEach((marriages, personId) => {
-            marriages.sort((a, b) => a.idx - b.idx);
+            marriages.sort((a, b) => {
+                const aMarriageNodeId = `marriage-${a.idx}`;
+                const bMarriageNodeId = `marriage-${b.idx}`;
+                const aPos = marriageNodePositions.get(aMarriageNodeId);
+                const bPos = marriageNodePositions.get(bMarriageNodeId);
+
+                // Sort by x-position of marriage nodes so connection points follow horizontal layout
+                if (!aPos || !bPos) return a.idx - b.idx;
+
+                return aPos.x - bPos.x;
+            });
         });
 
         const getConnectionOffset = (personId, marriageIdx) => {
