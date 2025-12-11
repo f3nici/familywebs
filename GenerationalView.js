@@ -700,6 +700,25 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                 if (i === lineIdx) continue; // Skip self
 
                 const otherLine = lines[i];
+
+                // Check if both are child lines from the same marriage (siblings)
+                // Child line keys are like: "marriage-to-child-{marriageIdx}-{childIdx}"
+                const isSiblingLines = line.type === 'parent' &&
+                                      otherLine.type === 'parent' &&
+                                      line.key.startsWith('marriage-to-child-') &&
+                                      otherLine.key.startsWith('marriage-to-child-');
+
+                if (isSiblingLines) {
+                    // Extract marriage index from both keys
+                    const lineMarriageIdx = line.key.split('-')[3];
+                    const otherLineMarriageIdx = otherLine.key.split('-')[3];
+
+                    if (lineMarriageIdx === otherLineMarriageIdx) {
+                        // Same marriage - these are siblings, skip to avoid jumps on overlapping segments
+                        continue;
+                    }
+                }
+
                 const otherSegments = extractSegments(otherLine.path);
 
                 // Check each horizontal segment in current line against other line's vertical segments
