@@ -1428,6 +1428,10 @@
             const [showMobileDetailPanel, setShowMobileDetailPanel] = useState(false);
             const [showMobileFabMenu, setShowMobileFabMenu] = useState(false);
             const [isMobile, setIsMobile] = useState(window.innerWidth <= 900);
+            const [theme, setTheme] = useState(() => {
+                const savedTheme = localStorage.getItem('familyTreeTheme');
+                return savedTheme || 'light';
+            });
 
             const fileInputRef = useRef(null);
             const getNodePositionsRef = useRef(null);
@@ -1463,6 +1467,16 @@
                 window.addEventListener('resize', handleResize);
                 return () => window.removeEventListener('resize', handleResize);
             }, []);
+
+            // Apply theme to document
+            useEffect(() => {
+                document.documentElement.setAttribute('data-theme', theme);
+                localStorage.setItem('familyTreeTheme', theme);
+            }, [theme]);
+
+            const toggleTheme = () => {
+                setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
+            };
 
             const mobileDetailPanelStyle = useMemo(() => {
                 if (!isMobile) return {};
@@ -1813,6 +1827,14 @@
                                     👥 Generational View
                                 </button>
                             </div>
+
+                            <button
+                                className="btn btn-secondary"
+                                onClick={toggleTheme}
+                                title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+                            >
+                                {theme === 'light' ? '🌙' : '☀️'}
+                            </button>
 
                             <div className="toggle-container">
                                 <span className="toggle-label">{isEditMode ? 'Edit Mode' : 'View Only'}</span>
