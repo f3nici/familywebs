@@ -1346,57 +1346,47 @@
                         </div>
                         <div className="modal-body" style={{maxHeight: '60vh', overflowY: 'auto'}}>
                             <div className="detail-section">
-                                <h3 className="section-title">Getting Started</h3>
+                                <h3 className="section-title">Welcome to the Family Tree</h3>
                                 <p style={{color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: '12px'}}>
-                                    Family Webs helps you create interactive family trees with support for complex relationships including remarriages, half-siblings, and step-families.
+                                    Explore our interactive family tree with support for complex relationships including remarriages, half-siblings, and step-families.
                                 </p>
                             </div>
 
                             <div className="detail-section">
-                                <h3 className="section-title">Adding People & Relationships</h3>
+                                <h3 className="section-title">Viewing Family Information</h3>
                                 <ul style={{color: 'var(--text-secondary)', lineHeight: 1.7, paddingLeft: '24px'}}>
-                                    <li style={{marginBottom: '8px'}}><strong>Add Person:</strong> Click the "Add Person" button in the sidebar to create a new family member</li>
-                                    <li style={{marginBottom: '8px'}}><strong>Add Relationship:</strong> Click "Add Relationship" to connect two people as partners and optionally add their children</li>
-                                    <li style={{marginBottom: '8px'}}><strong>Edit Details:</strong> Click on any person in the tree or sidebar to view and edit their information</li>
-                                    <li style={{marginBottom: '8px'}}><strong>Set Home Person:</strong> Click the home icon (🏠) next to a person to set them as the reference point for relationship calculations</li>
+                                    <li style={{marginBottom: '8px'}}><strong>Click on Anyone:</strong> Click on any person in the tree or sidebar to view their details, including birth information, relationships, and more</li>
+                                    <li style={{marginBottom: '8px'}}><strong>Search:</strong> Use the search box in the sidebar to quickly find specific family members</li>
+                                    <li style={{marginBottom: '8px'}}><strong>Set Home Person:</strong> Click the home icon (🏠) next to a person's name to set them as the reference point. This will update all relationship calculations (e.g., "Mother", "Cousin", "Aunt")</li>
                                 </ul>
                             </div>
 
                             <div className="detail-section">
-                                <h3 className="section-title">View Modes</h3>
+                                <h3 className="section-title">Switching Between Views</h3>
                                 <ul style={{color: 'var(--text-secondary)', lineHeight: 1.7, paddingLeft: '24px'}}>
-                                    <li style={{marginBottom: '8px'}}><strong>Web View:</strong> Shows family members as an interactive web with relationship lines. You can drag people around to position them</li>
+                                    <li style={{marginBottom: '8px'}}><strong>Web View:</strong> Shows family members as an interactive web with relationship lines. Click and drag to pan around, use mouse wheel or pinch to zoom</li>
                                     <li style={{marginBottom: '8px'}}><strong>Generational View:</strong> Shows family members organized by generation in a traditional family tree layout</li>
+                                    <li style={{marginBottom: '8px'}}><strong>Switch Views:</strong> Click the "🌐 Web View" or "👥 Generational View" buttons at the top of the page to switch between layouts</li>
                                 </ul>
                             </div>
 
-                            <div className="detail-section" style={{background: 'var(--bg-warning)', padding: '16px', borderRadius: '8px', border: '2px solid var(--primary)'}}>
-                                <h3 className="section-title" style={{color: 'var(--text-warning)', marginTop: 0}}>⚠️ Important: Saving Your Work</h3>
-                                <p style={{color: 'var(--text-warning)', lineHeight: 1.7, marginBottom: '12px', fontWeight: '500'}}>
-                                    To save your family tree and preserve the positioning of people in both views:
-                                </p>
-                                <ol style={{color: 'var(--text-warning)', lineHeight: 1.7, paddingLeft: '24px', fontWeight: '500'}}>
-                                    <li style={{marginBottom: '8px'}}><strong>Export Before Switching Views:</strong> Always click "Export" to save your current positioning before switching between Web View and Generational View</li>
-                                    <li style={{marginBottom: '8px'}}><strong>Export = Save:</strong> There is no automatic save. Click the "Export" button to download your family tree as a JSON file</li>
-                                    <li style={{marginBottom: '8px'}}><strong>Import = Load:</strong> To reopen a saved family tree, reload the website and click "Import" to select your saved JSON file</li>
-                                    <li style={{marginBottom: '8px'}}><strong>Local Storage:</strong> Your work is temporarily saved in your browser, but will be lost if you clear browser data or use a different browser</li>
-                                </ol>
-                            </div>
-
                             <div className="detail-section">
-                                <h3 className="section-title">Edit Mode</h3>
-                                <p style={{color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: '12px'}}>
-                                    Toggle "Edit Mode" in the header to switch between editing and view-only mode. In view-only mode, you can explore the tree without accidentally making changes.
-                                </p>
-                            </div>
-
-                            <div className="detail-section">
-                                <h3 className="section-title">Tips</h3>
+                                <h3 className="section-title">Navigation Controls</h3>
                                 <ul style={{color: 'var(--text-secondary)', lineHeight: 1.7, paddingLeft: '24px'}}>
-                                    <li style={{marginBottom: '8px'}}>Use the search box to quickly find family members</li>
-                                    <li style={{marginBottom: '8px'}}>Drag people in Web View to arrange them how you like</li>
-                                    <li style={{marginBottom: '8px'}}>Export your tree regularly to avoid losing work</li>
-                                    <li style={{marginBottom: '8px'}}>Relationships to the home person are shown automatically</li>
+                                    <li style={{marginBottom: '8px'}}><strong>Zoom:</strong> Use the + and - buttons or mouse wheel to zoom in and out</li>
+                                    <li style={{marginBottom: '8px'}}><strong>Pan:</strong> Click and drag on empty space to move around the tree</li>
+                                    <li style={{marginBottom: '8px'}}><strong>Fit to Screen:</strong> Click the ⛶ button to fit the entire tree on your screen</li>
+                                    <li style={{marginBottom: '8px'}}><strong>Lock/Unlock:</strong> Click the 🔓/🔒 button to lock or unlock the view</li>
+                                </ul>
+                            </div>
+
+                            <div className="detail-section">
+                                <h3 className="section-title">Tips for Exploring</h3>
+                                <ul style={{color: 'var(--text-secondary)', lineHeight: 1.7, paddingLeft: '24px'}}>
+                                    <li style={{marginBottom: '8px'}}>Start by setting yourself as the home person to see your relationships to everyone</li>
+                                    <li style={{marginBottom: '8px'}}>Try both view modes - Web View is great for seeing connections, Generational View shows the family hierarchy</li>
+                                    <li style={{marginBottom: '8px'}}>Use the theme toggle (🌙/☀️) to switch between light and dark modes</li>
+                                    <li style={{marginBottom: '8px'}}>On mobile, tap the menu icon to see the list of family members</li>
                                 </ul>
                             </div>
                         </div>
