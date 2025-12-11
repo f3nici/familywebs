@@ -722,13 +722,24 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                     console.log('  Jump over', otherLineKey, '(' + otherLineType + ') at x=' + intersection.x.toFixed(1), 'y=' + intersection.y.toFixed(1));
                 });
 
-                // Extract just the intersection points
-                const jumpPoints = jumpsForThisLine.map(j => j.intersection);
+                // Extract intersection points and de-duplicate by position
+                // Multiple lines crossing at same point should only create one jump
+                const uniqueJumpPoints = [];
+                const seenPositions = new Set();
+
+                jumpsForThisLine.forEach(({ intersection }) => {
+                    const posKey = `${intersection.x.toFixed(1)},${intersection.y.toFixed(1)}`;
+                    if (!seenPositions.has(posKey)) {
+                        seenPositions.add(posKey);
+                        uniqueJumpPoints.push(intersection);
+                    }
+                });
+
+                console.log('  De-duplicated to', uniqueJumpPoints.length, 'unique jump positions');
 
                 // Apply all jumps in a single pass
-                modifiedPath = addMultipleJumpsToPath(line.path, jumpPoints);
-                console.log('  Result path:', modifiedPath);
-                totalJumps += jumpsForThisLine.length;
+                modifiedPath = addMultipleJumpsToPath(line.path, uniqueJumpPoints);
+                totalJumps += uniqueJumpPoints.length;
             }
 
             return {
