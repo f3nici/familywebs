@@ -1348,55 +1348,33 @@
                             <div className="detail-section">
                                 <h3 className="section-title">Getting Started</h3>
                                 <p style={{color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: '12px'}}>
-                                    Family Webs helps you create interactive family trees with support for complex relationships including remarriages, half-siblings, and step-families.
+                                    This view-only edition of Family Webs automatically loads a local <code>family.json</code> file that lives next to <code>index.html</code>. Replace that file with your own data and refresh to browse a different tree.
                                 </p>
                             </div>
 
                             <div className="detail-section">
-                                <h3 className="section-title">Adding People & Relationships</h3>
+                                <h3 className="section-title">Viewing the Tree</h3>
                                 <ul style={{color: 'var(--text-secondary)', lineHeight: 1.7, paddingLeft: '24px'}}>
-                                    <li style={{marginBottom: '8px'}}><strong>Add Person:</strong> Click the "Add Person" button in the sidebar to create a new family member</li>
-                                    <li style={{marginBottom: '8px'}}><strong>Add Relationship:</strong> Click "Add Relationship" to connect two people as partners and optionally add their children</li>
-                                    <li style={{marginBottom: '8px'}}><strong>Edit Details:</strong> Click on any person in the tree or sidebar to view and edit their information</li>
-                                    <li style={{marginBottom: '8px'}}><strong>Set Home Person:</strong> Click the home icon (🏠) next to a person to set them as the reference point for relationship calculations</li>
+                                    <li style={{marginBottom: '8px'}}><strong>Search:</strong> Use the search box to quickly find family members.</li>
+                                    <li style={{marginBottom: '8px'}}><strong>Select:</strong> Click any person in the list or on the canvas to see their details and relationships.</li>
+                                    <li style={{marginBottom: '8px'}}><strong>Home Person:</strong> Use the home icon (🏠) next to a person to set them as the reference for relationship labels.</li>
                                 </ul>
                             </div>
 
                             <div className="detail-section">
                                 <h3 className="section-title">View Modes</h3>
                                 <ul style={{color: 'var(--text-secondary)', lineHeight: 1.7, paddingLeft: '24px'}}>
-                                    <li style={{marginBottom: '8px'}}><strong>Web View:</strong> Shows family members as an interactive web with relationship lines. You can drag people around to position them</li>
-                                    <li style={{marginBottom: '8px'}}><strong>Generational View:</strong> Shows family members organized by generation in a traditional family tree layout</li>
+                                    <li style={{marginBottom: '8px'}}><strong>Web View:</strong> Shows family members as an interactive web with relationship lines. You can drag people around to position them.</li>
+                                    <li style={{marginBottom: '8px'}}><strong>Generational View:</strong> Shows family members organized by generation in a traditional family tree layout.</li>
                                 </ul>
-                            </div>
-
-                            <div className="detail-section" style={{background: 'var(--bg-warning)', padding: '16px', borderRadius: '8px', border: '2px solid var(--primary)'}}>
-                                <h3 className="section-title" style={{color: 'var(--text-warning)', marginTop: 0}}>⚠️ Important: Saving Your Work</h3>
-                                <p style={{color: 'var(--text-warning)', lineHeight: 1.7, marginBottom: '12px', fontWeight: '500'}}>
-                                    To save your family tree and preserve the positioning of people in both views:
-                                </p>
-                                <ol style={{color: 'var(--text-warning)', lineHeight: 1.7, paddingLeft: '24px', fontWeight: '500'}}>
-                                    <li style={{marginBottom: '8px'}}><strong>Export Before Switching Views:</strong> Always click "Export" to save your current positioning before switching between Web View and Generational View</li>
-                                    <li style={{marginBottom: '8px'}}><strong>Export = Save:</strong> There is no automatic save. Click the "Export" button to download your family tree as a JSON file</li>
-                                    <li style={{marginBottom: '8px'}}><strong>Import = Load:</strong> To reopen a saved family tree, reload the website and click "Import" to select your saved JSON file</li>
-                                    <li style={{marginBottom: '8px'}}><strong>Local Storage:</strong> Your work is temporarily saved in your browser, but will be lost if you clear browser data or use a different browser</li>
-                                </ol>
-                            </div>
-
-                            <div className="detail-section">
-                                <h3 className="section-title">Edit Mode</h3>
-                                <p style={{color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: '12px'}}>
-                                    Toggle "Edit Mode" in the header to switch between editing and view-only mode. In view-only mode, you can explore the tree without accidentally making changes.
-                                </p>
                             </div>
 
                             <div className="detail-section">
                                 <h3 className="section-title">Tips</h3>
                                 <ul style={{color: 'var(--text-secondary)', lineHeight: 1.7, paddingLeft: '24px'}}>
-                                    <li style={{marginBottom: '8px'}}>Use the search box to quickly find family members</li>
-                                    <li style={{marginBottom: '8px'}}>Drag people in Web View to arrange them how you like</li>
-                                    <li style={{marginBottom: '8px'}}>Export your tree regularly to avoid losing work</li>
-                                    <li style={{marginBottom: '8px'}}>Relationships to the home person are shown automatically</li>
+                                    <li style={{marginBottom: '8px'}}>Drag people in Web View to arrange them how you like while exploring.</li>
+                                    <li style={{marginBottom: '8px'}}>Reload after updating <code>family.json</code> to view the latest data.</li>
+                                    <li style={{marginBottom: '8px'}}>Relationships to the home person are shown automatically.</li>
                                 </ul>
                             </div>
                         </div>
@@ -1415,25 +1393,21 @@
 
         const FamilyTreeApp = () => {
             const [treeData, setTreeData] = useState(null);
-            const [isEditMode, setIsEditMode] = useState(true);
             const [selectedPerson, setSelectedPerson] = useState(null);
             const [searchQuery, setSearchQuery] = useState('');
-            const [showAddPersonModal, setShowAddPersonModal] = useState(false);
-            const [showAddMarriageModal, setShowAddMarriageModal] = useState(false);
-            const [showDeletePersonModal, setShowDeletePersonModal] = useState(false);
-            const [showEditRelationshipModal, setShowEditRelationshipModal] = useState(false);
             const [showHelpModal, setShowHelpModal] = useState(false);
             const [viewMode, setViewMode] = useState('web'); // 'web' or 'generational'
             const [showMobileMenu, setShowMobileMenu] = useState(false);
             const [showMobileDetailPanel, setShowMobileDetailPanel] = useState(false);
-            const [showMobileFabMenu, setShowMobileFabMenu] = useState(false);
             const [isMobile, setIsMobile] = useState(window.innerWidth <= 900);
+            const [isLoadingData, setIsLoadingData] = useState(true);
+            const [loadError, setLoadError] = useState('');
+            const isEditMode = false;
             const [theme, setTheme] = useState(() => {
                 const savedTheme = localStorage.getItem('familyTreeTheme');
                 return savedTheme || 'light';
             });
 
-            const fileInputRef = useRef(null);
             const getNodePositionsRef = useRef(null);
             const getGenerationalViewStateRef = useRef(null);
 
@@ -1446,21 +1420,25 @@
             }, [treeData, searchQuery]);
 
             useEffect(() => {
-                const saved = localStorage.getItem('familyTreeData');
-                if (saved) {
+                const loadFamilyFile = async () => {
                     try {
-                        setTreeData(JSON.parse(saved));
-                    } catch (e) {
-                        console.error('Failed to parse saved data');
+                        const response = await fetch('family.json', { cache: 'no-store' });
+                        if (!response.ok) {
+                            throw new Error('family.json not found');
+                        }
+                        const data = await response.json();
+                        setTreeData(data);
+                        setSelectedPerson(data.homePerson || null);
+                    } catch (error) {
+                        console.error('Failed to load family.json', error);
+                        setLoadError('Could not load family.json. Place the file next to index.html and refresh.');
+                    } finally {
+                        setIsLoadingData(false);
                     }
-                }
-            }, []);
+                };
 
-            useEffect(() => {
-                if (treeData) {
-                    localStorage.setItem('familyTreeData', JSON.stringify(treeData));
-                }
-            }, [treeData]);
+                loadFamilyFile();
+            }, []);
 
             useEffect(() => {
                 const handleResize = () => setIsMobile(window.innerWidth <= 900);
@@ -1508,234 +1486,6 @@
                 };
             }, [isMobile, showMobileDetailPanel]);
 
-            const handleFileUpload = (event) => {
-                const file = event.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        try {
-                            const data = JSON.parse(e.target.result);
-                            setTreeData(data);
-                            setSelectedPerson(null);
-                        } catch (error) {
-                            alert('Invalid JSON file');
-                        }
-                    };
-                    reader.readAsText(file);
-                }
-            };
-
-            const handleDownload = () => {
-                if (!treeData) return;
-
-                let dataToExport = { ...treeData };
-
-                if (!dataToExport.viewState) {
-                    dataToExport.viewState = {};
-                }
-
-                if (getNodePositionsRef.current) {
-                    const nodePositions = getNodePositionsRef.current();
-                    if (nodePositions && nodePositions.length > 0) {
-                        dataToExport.viewState.nodes = nodePositions.map(node => ({
-                            id: node.id,
-                            x: node.position.x,
-                            y: node.position.y
-                        }));
-                    }
-                }
-
-                if (getGenerationalViewStateRef.current) {
-                    const generationalViewState = getGenerationalViewStateRef.current();
-                    if (generationalViewState) {
-                        dataToExport.viewState.generationalView = generationalViewState;
-                    }
-                }
-
-                const cleanedPeople = {};
-                Object.entries(dataToExport.people).forEach(([id, person]) => {
-                    const { surnameAssumed, surnameAssmed, photos, attachments, ...cleanPerson } = person;
-                    cleanedPeople[id] = cleanPerson;
-                });
-                dataToExport.people = cleanedPeople;
-
-                delete dataToExport.events;
-                delete dataToExport.credits;
-
-                const dataStr = JSON.stringify(dataToExport, null, 2);
-                const blob = new Blob([dataStr], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${treeData.name || 'family_tree'}.json`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            };
-
-            const handleNewTree = () => {
-                const name = prompt('Enter a name for your family tree:', 'My Family');
-                if (name) {
-                    setTreeData({
-                        ...emptyTreeData,
-                        id: generateId(),
-                        name,
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString()
-                    });
-                    setSelectedPerson(null);
-                }
-            };
-
-            const handleUpdatePerson = (personId, updatedPerson) => {
-                setTreeData(prev => ({
-                    ...prev,
-                    updatedAt: new Date().toISOString(),
-                    people: {
-                        ...prev.people,
-                        [personId]: updatedPerson
-                    }
-                }));
-            };
-
-            const handleAddPerson = (person, relationship) => {
-                const newId = String(Math.max(0, ...Object.keys(treeData.people).map(Number)) + 1);
-                
-                setTreeData(prev => {
-                    const newData = {
-                        ...prev,
-                        updatedAt: new Date().toISOString(),
-                        people: {
-                            ...prev.people,
-                            [newId]: person
-                        }
-                    };
-                    
-                    // Handle relationships
-                    if (relationship.type && relationship.personId) {
-                        const relPersonId = relationship.personId;
-                        
-                        if (relationship.type === 'spouse') {
-                            // Check if person already has a marriage
-                            const existingMarriage = prev.mariages.find(m => 
-                                m[0] === relPersonId || m[1] === relPersonId
-                            );
-                            if (existingMarriage) {
-                                // Person already married, create new marriage for remarriage
-                                newData.mariages = [...prev.mariages, [relPersonId, newId]];
-                            } else {
-                                newData.mariages = [...prev.mariages, [relPersonId, newId]];
-                            }
-                        } else if (relationship.type === 'child') {
-                            // Find parent's marriage and add child
-                            const marriageIndex = prev.mariages.findIndex(m => 
-                                m[0] === relPersonId || m[1] === relPersonId
-                            );
-                            if (marriageIndex >= 0) {
-                                const marriages = [...prev.mariages];
-                                marriages[marriageIndex] = [...marriages[marriageIndex], newId];
-                                newData.mariages = marriages;
-                            } else {
-                                // Create marriage with unknown spouse
-                                const unknownId = String(Math.max(0, ...Object.keys(newData.people).map(Number)) + 1);
-                                newData.people[unknownId] = {
-                                    name: 'Unknown',
-                                    surname: '',
-                                    gender: '',
-                                    events: [],
-                                    photos: [],
-                                    attachments: [],
-                                    information: ''
-                                };
-                                newData.mariages = [...prev.mariages, [relPersonId, unknownId, newId]];
-                            }
-                        } else if (relationship.type === 'parent') {
-                            // Find if child is already in a marriage as child
-                            const marriageIndex = prev.mariages.findIndex(m => 
-                                m.slice(2).includes(relPersonId)
-                            );
-                            if (marriageIndex >= 0) {
-                                // Child already has parents, add as additional parent (step-parent scenario)
-                                newData.mariages = [...prev.mariages, [newId, relPersonId]];
-                            } else {
-                                // Create new family unit
-                                newData.mariages = [...prev.mariages, [newId, '', relPersonId].filter(Boolean)];
-                            }
-                        }
-                    }
-                    
-                    return newData;
-                });
-                
-                setSelectedPerson(newId);
-            };
-
-            const handleAddMarriage = (spouse1Id, spouse2Id, children = []) => {
-                setTreeData(prev => ({
-                    ...prev,
-                    updatedAt: new Date().toISOString(),
-                    mariages: [...prev.mariages, [spouse1Id, spouse2Id, ...children]]
-                }));
-            };
-
-            const handleDeletePerson = (personId) => {
-                if (!confirm('Are you sure you want to delete this person?')) return;
-
-                setTreeData(prev => {
-                    const newPeople = {...prev.people};
-                    delete newPeople[personId];
-
-                    const newMarriages = prev.mariages
-                        .filter(m => {
-                            if (m[0] === personId || m[1] === personId) {
-                                return false;
-                            }
-                            return true;
-                        })
-                        .map(m => m.filter(id => id !== personId));
-
-                    return {
-                        ...prev,
-                        updatedAt: new Date().toISOString(),
-                        people: newPeople,
-                        mariages: newMarriages
-                    };
-                });
-
-                if (selectedPerson === personId) {
-                    setSelectedPerson(null);
-                }
-            };
-
-            const handleUpdateRelationship = (relationshipIndex, spouse1Id, spouse2Id, children = []) => {
-                setTreeData(prev => {
-                    const newMarriages = [...prev.mariages];
-                    newMarriages[relationshipIndex] = [spouse1Id, spouse2Id, ...children];
-
-                    return {
-                        ...prev,
-                        updatedAt: new Date().toISOString(),
-                        mariages: newMarriages
-                    };
-                });
-            };
-
-            const handleDeleteRelationship = (relationshipIndex) => {
-                if (!confirm('Are you sure you want to delete this relationship?')) return;
-
-                setTreeData(prev => {
-                    const newMarriages = [...prev.mariages];
-                    newMarriages.splice(relationshipIndex, 1);
-
-                    return {
-                        ...prev,
-                        updatedAt: new Date().toISOString(),
-                        mariages: newMarriages
-                    };
-                });
-            };
-
             const handleSetHomePerson = (personId) => {
                 setTreeData(prev => ({
                     ...prev,
@@ -1744,33 +1494,33 @@
                 }));
             };
 
-            if (!treeData) {
+            if (isLoadingData) {
                 return (
                     <div className="app-container">
                         <div className="welcome-screen">
                             <div className="logo-icon" style={{width: '80px', height: '80px', marginBottom: '24px', background: 'none', borderRadius: '0'}}>
                                 <img src="assets/logo.png" alt="Family Webs" style={{width: '100%', height: '100%', objectFit: 'contain'}} />
                             </div>
-                            <h1 className="welcome-title">Family Webs</h1>
+                            <h1 className="welcome-title">Loading your family tree…</h1>
                             <p className="welcome-subtitle">
-                                Create beautiful, interactive family trees that capture the complex relationships
-                                of your family including remarriages, half-siblings, and step-families.
+                                Looking for <code>family.json</code> in the same folder as this page.
                             </p>
-                            <div className="welcome-actions">
-                                <button className="btn btn-primary" onClick={handleNewTree}>
-                                    {Icons.plus} Create New Tree
-                                </button>
-                                <button className="btn btn-secondary" onClick={() => fileInputRef.current?.click()}>
-                                    {Icons.upload} Import JSON
-                                </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (loadError || !treeData) {
+                return (
+                    <div className="app-container">
+                        <div className="welcome-screen">
+                            <div className="logo-icon" style={{width: '80px', height: '80px', marginBottom: '24px', background: 'none', borderRadius: '0'}}>
+                                <img src="assets/logo.png" alt="Family Webs" style={{width: '100%', height: '100%', objectFit: 'contain'}} />
                             </div>
-                            <input 
-                                ref={fileInputRef}
-                                type="file" 
-                                accept=".json"
-                                style={{display: 'none'}}
-                                onChange={handleFileUpload}
-                            />
+                            <h1 className="welcome-title">Family data not found</h1>
+                            <p className="welcome-subtitle">
+                                {loadError || 'Place a family.json file next to index.html and reload to view your tree.'}
+                            </p>
                         </div>
                     </div>
                 );
@@ -1828,6 +1578,11 @@
                                 </button>
                             </div>
 
+                            <div className="toggle-container" style={{cursor: 'default'}}>
+                                <span className="toggle-label">View Only</span>
+                                <div className="toggle-switch active" />
+                            </div>
+
                             <button
                                 className="btn btn-secondary"
                                 onClick={toggleTheme}
@@ -1836,14 +1591,6 @@
                                 {theme === 'light' ? '🌙' : '☀️'}
                             </button>
 
-                            <div className="toggle-container">
-                                <span className="toggle-label">{isEditMode ? 'Edit Mode' : 'View Only'}</span>
-                                <div
-                                    className={`toggle-switch ${isEditMode ? 'active' : ''}`}
-                                    onClick={() => setIsEditMode(!isEditMode)}
-                                />
-                            </div>
-
                             <button
                                 className="btn btn-secondary"
                                 onClick={() => setShowHelpModal(true)}
@@ -1851,19 +1598,6 @@
                             >
                                 {Icons.help} Help
                             </button>
-                            <button className="btn btn-secondary" onClick={handleDownload}>
-                                {Icons.download} Export
-                            </button>
-                            <button className="btn btn-secondary" onClick={() => fileInputRef.current?.click()}>
-                                {Icons.upload} Import
-                            </button>
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept=".json"
-                                style={{display: 'none'}}
-                                onChange={handleFileUpload}
-                            />
                         </div>
                     </header>
 
@@ -1917,48 +1651,16 @@
                                     );
                                 })}
                                 
-                                {filteredPeople.length === 0 && (
-                                    <div className="empty-state" style={{padding: '40px 20px'}}>
-                                        <div className="empty-icon">{Icons.person}</div>
-                                        <p className="empty-text">
-                                            {searchQuery ? 'No people match your search' : 'No family members yet'}
-                                        </p>
-                                    </div>
-                                )}
+                                        {filteredPeople.length === 0 && (
+                                            <div className="empty-state" style={{padding: '40px 20px'}}>
+                                                <div className="empty-icon">{Icons.person}</div>
+                                                <p className="empty-text">
+                                                    {searchQuery ? 'No people match your search' : 'No family members in this file'}
+                                                </p>
+                                            </div>
+                                        )}
                             </div>
                             
-                            {isEditMode && (
-                                <div style={{padding: '16px', borderTop: '1px solid var(--border-subtle)'}}>
-                                    <button
-                                        className="btn btn-primary"
-                                        style={{width: '100%', marginBottom: '8px'}}
-                                        onClick={() => setShowAddPersonModal(true)}
-                                    >
-                                        {Icons.plus} Add Person
-                                    </button>
-                                    <button
-                                        className="btn btn-secondary"
-                                        style={{width: '100%', marginBottom: '8px'}}
-                                        onClick={() => setShowAddMarriageModal(true)}
-                                    >
-                                        {Icons.marriage} Add Relationship
-                                    </button>
-                                    <button
-                                        className="btn btn-secondary"
-                                        style={{width: '100%', marginBottom: '8px'}}
-                                        onClick={() => setShowDeletePersonModal(true)}
-                                    >
-                                        {Icons.trash} Delete Person
-                                    </button>
-                                    <button
-                                        className="btn btn-secondary"
-                                        style={{width: '100%'}}
-                                        onClick={() => setShowEditRelationshipModal(true)}
-                                    >
-                                        {Icons.edit} Edit Relationship
-                                    </button>
-                                </div>
-                            )}
                         </aside>
 
                         <main className="tree-canvas">
@@ -1993,83 +1695,15 @@
                                     <div className="tree-content">
                                         <div className="empty-state">
                                             <div className="empty-icon">{Icons.tree}</div>
-                                            <h3 className="empty-title">Start Your Family Tree</h3>
+                                            <h3 className="empty-title">No people found</h3>
                                             <p className="empty-text">
-                                                Add your first family member to begin building your tree.
+                                                Check that your <code>family.json</code> file includes people data and reload this page.
                                             </p>
-                                            {isEditMode && (
-                                                <button
-                                                    className="btn btn-primary"
-                                                    style={{marginTop: '24px'}}
-                                                    onClick={() => setShowAddPersonModal(true)}
-                                                >
-                                                    {Icons.plus} Add First Person
-                                                </button>
-                                            )}
                                         </div>
                                     </div>
                                 </div>
                             )}
                         </main>
-
-                        {isEditMode && (
-                            <div className="mobile-fab-container">
-                                {showMobileFabMenu && (
-                                    <>
-                                        <div className="mobile-fab-overlay" onClick={() => setShowMobileFabMenu(false)} />
-                                        <div className="mobile-fab-menu">
-                                            <button
-                                                className="mobile-fab-menu-item"
-                                                onClick={() => {
-                                                    setShowAddPersonModal(true);
-                                                    setShowMobileFabMenu(false);
-                                                }}
-                                            >
-                                                <span className="fab-menu-icon">{Icons.person}</span>
-                                                <span className="fab-menu-text">Add Person</span>
-                                            </button>
-                                            <button
-                                                className="mobile-fab-menu-item"
-                                                onClick={() => {
-                                                    setShowAddMarriageModal(true);
-                                                    setShowMobileFabMenu(false);
-                                                }}
-                                            >
-                                                <span className="fab-menu-icon">{Icons.marriage}</span>
-                                                <span className="fab-menu-text">Add Relationship</span>
-                                            </button>
-                                            <button
-                                                className="mobile-fab-menu-item"
-                                                onClick={() => {
-                                                    setShowDeletePersonModal(true);
-                                                    setShowMobileFabMenu(false);
-                                                }}
-                                            >
-                                                <span className="fab-menu-icon">{Icons.trash}</span>
-                                                <span className="fab-menu-text">Delete Person</span>
-                                            </button>
-                                            <button
-                                                className="mobile-fab-menu-item"
-                                                onClick={() => {
-                                                    setShowEditRelationshipModal(true);
-                                                    setShowMobileFabMenu(false);
-                                                }}
-                                            >
-                                                <span className="fab-menu-icon">{Icons.edit}</span>
-                                                <span className="fab-menu-text">Edit Relationship</span>
-                                            </button>
-                                        </div>
-                                    </>
-                                )}
-                                <button
-                                    className={`mobile-fab ${showMobileFabMenu ? 'active' : ''}`}
-                                    onClick={() => setShowMobileFabMenu(!showMobileFabMenu)}
-                                    title="Actions"
-                                >
-                                    {showMobileFabMenu ? Icons.close : Icons.plus}
-                                </button>
-                            </div>
-                        )}
 
                         {selectedPerson && treeData.people[selectedPerson] && (
                             <>
@@ -2080,7 +1714,7 @@
                                         personId={selectedPerson}
                                         treeData={treeData}
                                         isEditMode={isEditMode}
-                                        onUpdate={handleUpdatePerson}
+                                        onUpdate={() => {}}
                                         onClose={() => {setSelectedPerson(null); setShowMobileDetailPanel(false);}}
                                         onSelectPerson={setSelectedPerson}
                                     />
@@ -2089,31 +1723,6 @@
                         )}
                     </div>
 
-                    <AddPersonModal
-                        isOpen={showAddPersonModal}
-                        onClose={() => setShowAddPersonModal(false)}
-                        onAdd={handleAddPerson}
-                        treeData={treeData}
-                    />
-                    <AddMarriageModal
-                        isOpen={showAddMarriageModal}
-                        onClose={() => setShowAddMarriageModal(false)}
-                        onAdd={handleAddMarriage}
-                        treeData={treeData}
-                    />
-                    <DeletePersonModal
-                        isOpen={showDeletePersonModal}
-                        onClose={() => setShowDeletePersonModal(false)}
-                        onDelete={handleDeletePerson}
-                        treeData={treeData}
-                    />
-                    <EditRelationshipModal
-                        isOpen={showEditRelationshipModal}
-                        onClose={() => setShowEditRelationshipModal(false)}
-                        onUpdate={handleUpdateRelationship}
-                        onDelete={handleDeleteRelationship}
-                        treeData={treeData}
-                    />
                     <HelpModal
                         isOpen={showHelpModal}
                         onClose={() => setShowHelpModal(false)}

@@ -478,33 +478,6 @@ const applyWebMode = async (nodes, edges) => {
 
 const FluidTreeControls = ({ nodes, edges, setNodes, isLocked, setIsLocked }) => {
     const { fitView, zoomIn, zoomOut } = useReactFlow();
-    const [isApplyingWebMode, setIsApplyingWebMode] = React.useState(false);
-
-    const handleWebMode = async () => {
-        if (isApplyingWebMode || !nodes || nodes.length === 0) {
-            return;
-        }
-
-        setIsApplyingWebMode(true);
-
-        try {
-            const organizedNodes = await applyWebMode(nodes, edges);
-
-            setNodes(organizedNodes);
-
-            setTimeout(() => {
-                fitView({
-                    padding: 0.2,
-                    duration: 800,
-                    maxZoom: 1.5
-                });
-            }, 100);
-        } catch (error) {
-            console.error('Error during Web Mode:', error);
-        } finally {
-            setIsApplyingWebMode(false);
-        }
-    };
 
     const handleFitView = () => {
         fitView({
@@ -528,15 +501,6 @@ const FluidTreeControls = ({ nodes, edges, setNodes, isLocked, setIsLocked }) =>
                     {isLocked ? '🔒' : '🔓'}
                 </button>
             </div>
-            <button
-                className="organize-btn"
-                onClick={handleWebMode}
-                disabled={isApplyingWebMode}
-                title="Apply Web Mode using force-directed layout"
-            >
-                <span className="organize-icon">{isApplyingWebMode ? '⏳' : '🔄'}</span>
-                <span className="organize-text">{isApplyingWebMode ? 'Applying...' : 'Regenerate'}</span>
-            </button>
         </div>
     );
 };
