@@ -425,6 +425,125 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
         };
     }, [generationData, treeData, nodePositions, marriageNodePositions]);
 
+    // Extract horizontal and vertical segments from SVG path
+    const extractSegments = (path) => {
+        const horizontal = [];
+        const vertical = [];
+        const commands = path.match(/[MLQ]\s*[^MLQ]+/g) || [];
+
+        let currentX = 0, currentY = 0;
+
+        commands.forEach(cmd => {
+            const type = cmd[0];
+            const coords = cmd.slice(1).trim().split(/\s+/).map(parseFloat);
+
+            if (type === 'M') {
+                currentX = coords[0];
+                currentY = coords[1];
+            } else if (type === 'Q') {
+                currentX = coords[2];
+                currentY = coords[3];
+            } else if (type === 'L') {
+                const newX = coords[0];
+                const newY = coords[1];
+
+                if (Math.abs(newY - currentY) < 0.1) {
+                    horizontal.push({
+                        y: currentY,
+                        x1: Math.min(currentX, newX),
+                        x2: Math.max(currentX, newX)
+                    });
+                } else if (Math.abs(newX - currentX) < 0.1) {
+                    vertical.push({
+                        x: currentX,
+                        y1: Math.min(currentY, newY),
+                        y2: Math.max(currentY, newY)
+                    });
+                }
+
+                currentX = newX;
+                currentY = newY;
+            }
+        });
+
+        return { horizontal, vertical };
+    };
+
+    // Find intersection point between horizontal and vertical segments
+    const findHorizontalVerticalIntersection = (hSeg, vSeg) => {
+        if (vSeg.x < hSeg.x1 || vSeg.x > hSeg.x2) return null;
+        if (hSeg.y < vSeg.y1 || hSeg.y > vSeg.y2) return null;
+        return { x: vSeg.x, y: hSeg.y };
+    };
+
+    // Add jump arcs to path at specified intersection points
+    const addMultipleJumpsToPath = (path, jumpPoints, jumpHeight = 25) => {
+        if (jumpPoints.length === 0) return path;
+
+        const commands = path.match(/[MLQ]\s*[^MLQ]+/g) || [];
+        let newPath = '';
+        let currentX = 0, currentY = 0;
+
+        commands.forEach((cmd, idx) => {
+            const type = cmd[0];
+            const coords = cmd.slice(1).trim().split(/\s+/).map(parseFloat);
+
+            if (type === 'M') {
+                newPath += `M ${coords[0]} ${coords[1]} `;
+                currentX = coords[0];
+                currentY = coords[1];
+            } else if (type === 'Q') {
+                newPath += `Q ${coords[0]} ${coords[1]} ${coords[2]} ${coords[3]} `;
+                currentX = coords[2];
+                currentY = coords[3];
+            } else if (type === 'L') {
+                const newX = coords[0];
+                const newY = coords[1];
+
+                if (Math.abs(newY - currentY) < 0.1) {
+                    const jumpsOnThisSegment = jumpPoints.filter(jp =>
+                        Math.abs(currentY - jp.y) < 0.1 &&
+                        jp.x >= Math.min(currentX, newX) &&
+                        jp.x <= Math.max(currentX, newX)
+                    );
+
+                    if (jumpsOnThisSegment.length > 0) {
+                        const goingLeftToRight = currentX < newX;
+                        const sortedJumps = [...jumpsOnThisSegment].sort((a, b) =>
+                            goingLeftToRight ? a.x - b.x : b.x - a.x
+                        );
+
+                        const jumpWidth = 25;
+
+                        sortedJumps.forEach((jp, jumpIdx) => {
+                            const leftSide = jp.x - jumpWidth / 2;
+                            const rightSide = jp.x + jumpWidth / 2;
+
+                            if (goingLeftToRight) {
+                                newPath += `L ${leftSide} ${currentY} `;
+                                newPath += `Q ${jp.x} ${currentY - jumpHeight} ${rightSide} ${currentY} `;
+                            } else {
+                                newPath += `L ${rightSide} ${currentY} `;
+                                newPath += `Q ${jp.x} ${currentY - jumpHeight} ${leftSide} ${currentY} `;
+                            }
+                        });
+
+                        newPath += `L ${newX} ${newY} `;
+                    } else {
+                        newPath += `L ${newX} ${newY} `;
+                    }
+                } else {
+                    newPath += `L ${newX} ${newY} `;
+                }
+
+                currentX = newX;
+                currentY = newY;
+            }
+        });
+
+        return newPath.trim();
+    };
+
     const connectionLines = useMemo(() => {
         const lines = [];
         const { positions, marriageNodePositions, CARD_WIDTH, CARD_HEIGHT } = layout;
@@ -537,7 +656,75 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
             });
         });
 
-        return lines;
+        // Apply jump effect where lines cross (marriage-marriage, marriage-child, child-child from different marriages)
+        const processedLines = lines.map((line, lineIdx) => {
+            const mySegments = extractSegments(line.path);
+            let modifiedPath = line.path;
+            const jumpsForThisLine = [];
+
+            for (let i = 0; i < lines.length; i++) {
+                if (i === lineIdx) continue;
+
+                const otherLine = lines[i];
+
+                // Skip sibling lines (child lines from same marriage) to avoid jumps on overlapping segments
+                const isSiblingLines = line.type === 'parent' &&
+                                      otherLine.type === 'parent' &&
+                                      line.key.startsWith('marriage-to-child-') &&
+                                      otherLine.key.startsWith('marriage-to-child-');
+
+                if (isSiblingLines) {
+                    const lineMarriageIdx = line.key.split('-')[3];
+                    const otherLineMarriageIdx = otherLine.key.split('-')[3];
+                    if (lineMarriageIdx === otherLineMarriageIdx) continue;
+                }
+
+                const otherSegments = extractSegments(otherLine.path);
+
+                mySegments.horizontal.forEach(hSeg => {
+                    otherSegments.vertical.forEach(vSeg => {
+                        const intersection = findHorizontalVerticalIntersection(hSeg, vSeg);
+                        if (intersection !== null) {
+                            // Skip corners: 5px deadzone at top of vertical lines, or horizontal endpoint within 15px of vertical top
+                            const cornerDeadzone = 5;
+                            const distanceFromVerticalTop = Math.abs(intersection.y - vSeg.y1);
+                            const isNearVerticalTop = distanceFromVerticalTop < cornerDeadzone;
+                            const isHorizontalEndpoint =
+                                Math.abs(intersection.x - hSeg.x1) < cornerDeadzone ||
+                                Math.abs(intersection.x - hSeg.x2) < cornerDeadzone;
+                            const isCorner = isNearVerticalTop || (isHorizontalEndpoint && distanceFromVerticalTop < 15);
+
+                            if (!isCorner) {
+                                jumpsForThisLine.push({ intersection, otherLineKey: otherLine.key, otherLineType: otherLine.type });
+                            }
+                        }
+                    });
+                });
+            }
+
+            if (jumpsForThisLine.length > 0) {
+                // De-duplicate intersections at same position (multiple lines crossing at same point)
+                const uniqueJumpPoints = [];
+                const seenPositions = new Set();
+
+                jumpsForThisLine.forEach(({ intersection }) => {
+                    const posKey = `${intersection.x.toFixed(1)},${intersection.y.toFixed(1)}`;
+                    if (!seenPositions.has(posKey)) {
+                        seenPositions.add(posKey);
+                        uniqueJumpPoints.push(intersection);
+                    }
+                });
+
+                modifiedPath = addMultipleJumpsToPath(line.path, uniqueJumpPoints);
+            }
+
+            return {
+                ...line,
+                path: modifiedPath
+            };
+        });
+
+        return processedLines;
     }, [layout, treeData, selectedPerson]);
 
     const marriageNodes = useMemo(() => {
