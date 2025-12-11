@@ -109,16 +109,16 @@
    ========================================== */
 
 .react-flow-marriage-node {
-    width: 30px;
-    height: 30px;
+    width: 60px;
+    height: 60px;
     position: relative;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .marriage-circle {
-    width: 30px;
-    height: 30px;
+    width: 60px;
+    height: 60px;
     background: linear-gradient(135deg, var(--accent-warm) 0%, #a67d4f 100%);
     border-radius: 50%;
     box-shadow: 0 2px 8px rgba(196, 149, 106, 0.4);

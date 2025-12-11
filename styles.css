@@ -1953,8 +1953,8 @@
 
         /* Marriage node (gradient circle matching Web View) */
         .gen-marriage-node {
-            width: 30px;
-            height: 30px;
+            width: 60px;
+            height: 60px;
             background: linear-gradient(135deg, var(--accent-warm) 0%, #a67d4f 100%);
             border: 2px solid var(--bg-card);
             border-radius: 50%;

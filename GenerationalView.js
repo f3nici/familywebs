@@ -207,7 +207,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
     const layout = useMemo(() => {
         const CARD_WIDTH = 200;
         const CARD_HEIGHT = 150;
-        const MARRIAGE_SIZE = 30;
+        const MARRIAGE_SIZE = 60;
 
         const marriagesPerGeneration = new Map();
         treeData.mariages.forEach((marriage, idx) => {

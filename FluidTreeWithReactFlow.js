@@ -148,7 +148,7 @@ const FluidEdge = ({
 }) => {
     const personNodeHeight = 140;
     const personNodeWidth = 180;
-    const marriageNodeSize = 30;
+    const marriageNodeSize = 60;
 
     const isSourceMarriage = source?.includes('marriage') || false;
     const isTargetMarriage = target?.includes('marriage') || false;
@@ -204,7 +204,7 @@ const calculateFluidLayout = (treeData, viewState = null) => {
     const nodeHeight = 140;
     const horizontalSpacing = 100;
     const verticalSpacing = 200;
-    const marriageNodeSize = 30;
+    const marriageNodeSize = 60;
 
     const savedPositions = viewState?.nodes ?
         viewState.nodes.reduce((acc, node) => {
