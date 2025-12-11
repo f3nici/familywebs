@@ -426,10 +426,11 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
     }, [generationData, treeData, nodePositions, marriageNodePositions]);
 
     // Helper functions for line jump effect
-    const extractHorizontalSegments = (path) => {
-        // Parse SVG path and extract horizontal line segments
-        const segments = [];
-        const commands = path.match(/[ML]\s*[^ML]+/g) || [];
+    const extractSegments = (path) => {
+        // Parse SVG path and extract both horizontal and vertical line segments
+        const horizontal = [];
+        const vertical = [];
+        const commands = path.match(/[MLQ]\s*[^MLQ]+/g) || [];
 
         let currentX = 0, currentY = 0;
 
@@ -440,16 +441,28 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
             if (type === 'M') {
                 currentX = coords[0];
                 currentY = coords[1];
+            } else if (type === 'Q') {
+                // Skip Q commands for segment extraction (they're from previous jumps)
+                currentX = coords[2];
+                currentY = coords[3];
             } else if (type === 'L') {
                 const newX = coords[0];
                 const newY = coords[1];
 
                 // Check if this is a horizontal line (same Y)
                 if (Math.abs(newY - currentY) < 0.1) {
-                    segments.push({
+                    horizontal.push({
                         y: currentY,
                         x1: Math.min(currentX, newX),
                         x2: Math.max(currentX, newX)
+                    });
+                }
+                // Check if this is a vertical line (same X)
+                else if (Math.abs(newX - currentX) < 0.1) {
+                    vertical.push({
+                        x: currentX,
+                        y1: Math.min(currentY, newY),
+                        y2: Math.max(currentY, newY)
                     });
                 }
 
@@ -458,23 +471,22 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
             }
         });
 
-        return segments;
+        return { horizontal, vertical };
     };
 
-    const findHorizontalIntersections = (segment1, segment2) => {
-        // Check if two horizontal segments at the same Y level intersect
-        if (Math.abs(segment1.y - segment2.y) > 0.1) return null;
+    const findHorizontalVerticalIntersection = (hSeg, vSeg) => {
+        // Check if a horizontal segment crosses a vertical segment
+        // Horizontal segment: y constant, x ranges from x1 to x2
+        // Vertical segment: x constant, y ranges from y1 to y2
 
-        // Check if x ranges overlap
-        const overlapStart = Math.max(segment1.x1, segment2.x1);
-        const overlapEnd = Math.min(segment1.x2, segment2.x2);
+        // Check if vertical line's X is within horizontal segment's X range
+        if (vSeg.x < hSeg.x1 || vSeg.x > hSeg.x2) return null;
 
-        if (overlapStart < overlapEnd) {
-            // They overlap - return the middle of the overlap
-            return (overlapStart + overlapEnd) / 2;
-        }
+        // Check if horizontal line's Y is within vertical segment's Y range
+        if (hSeg.y < vSeg.y1 || hSeg.y > vSeg.y2) return null;
 
-        return null;
+        // They intersect at (vSeg.x, hSeg.y)
+        return { x: vSeg.x, y: hSeg.y };
     };
 
     const addJumpToPath = (path, jumpX, jumpY, jumpHeight = 8) => {
@@ -645,33 +657,43 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
             });
         });
 
-        // Apply jump effect where horizontal lines cross
+        // Apply jump effect where marriage lines' horizontal segments cross vertical segments
         let totalJumps = 0;
         const processedLines = lines.map((line, lineIdx) => {
-            const segments = extractHorizontalSegments(line.path);
+            // Only apply jump effect to marriage lines
+            if (line.type !== 'marriage') {
+                return line;
+            }
+
+            const mySegments = extractSegments(line.path);
             let modifiedPath = line.path;
 
-            // Check this line against all previous lines for crossings
-            for (let i = 0; i < lineIdx; i++) {
-                const otherLine = lines[i];
-                const otherSegments = extractHorizontalSegments(otherLine.path);
+            // Check this line's horizontal segments against all other marriage lines' vertical segments
+            for (let i = 0; i < lines.length; i++) {
+                if (i === lineIdx) continue; // Skip self
 
-                // Check each horizontal segment in current line against other line's segments
-                segments.forEach(seg => {
-                    otherSegments.forEach(otherSeg => {
-                        const intersectionX = findHorizontalIntersections(seg, otherSeg);
-                        if (intersectionX !== null) {
-                            console.log('Jump:', line.key, 'over', otherLine.key, 'at x=' + intersectionX.toFixed(1), 'y=' + seg.y.toFixed(1));
-                            // Add jump to the current line (it jumps over the earlier line)
-                            modifiedPath = addJumpToPath(modifiedPath, intersectionX, seg.y);
+                const otherLine = lines[i];
+                // Only check against other marriage lines
+                if (otherLine.type !== 'marriage') continue;
+
+                const otherSegments = extractSegments(otherLine.path);
+
+                // Check each horizontal segment in current line against other line's vertical segments
+                mySegments.horizontal.forEach(hSeg => {
+                    otherSegments.vertical.forEach(vSeg => {
+                        const intersection = findHorizontalVerticalIntersection(hSeg, vSeg);
+                        if (intersection !== null) {
+                            console.log('Jump:', line.key, 'over', otherLine.key, 'at x=' + intersection.x.toFixed(1), 'y=' + intersection.y.toFixed(1));
+                            // Add jump to the current line's horizontal segment
+                            modifiedPath = addJumpToPath(modifiedPath, intersection.x, intersection.y);
                             totalJumps++;
                         }
                     });
                 });
             }
 
-            if (modifiedPath !== line.path && modifiedPath.includes('Q')) {
-                console.log('Modified path for', line.key + ':', modifiedPath);
+            if (modifiedPath !== line.path) {
+                console.log('Modified marriage line:', line.key);
             }
 
             return {
