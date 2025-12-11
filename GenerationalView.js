@@ -479,9 +479,10 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
 
     const addJumpToPath = (path, jumpX, jumpY, jumpHeight = 8) => {
         // Add a small arc (jump) to a path at the specified point
-        const commands = path.match(/[ML]\s*[^ML]+/g) || [];
+        const commands = path.match(/[MLQ]\s*[^MLQ]+/g) || [];
         let newPath = '';
         let currentX = 0, currentY = 0;
+        let foundJumpPoint = false;
 
         commands.forEach((cmd, idx) => {
             const type = cmd[0];
@@ -491,12 +492,18 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                 newPath += `M ${coords[0]} ${coords[1]} `;
                 currentX = coords[0];
                 currentY = coords[1];
+            } else if (type === 'Q') {
+                // Preserve existing quadratic curves from previous jumps
+                newPath += `Q ${coords[0]} ${coords[1]} ${coords[2]} ${coords[3]} `;
+                currentX = coords[2];
+                currentY = coords[3];
             } else if (type === 'L') {
                 const newX = coords[0];
                 const newY = coords[1];
 
                 // Check if this horizontal segment contains the jump point
-                if (Math.abs(newY - currentY) < 0.1 &&
+                if (!foundJumpPoint &&
+                    Math.abs(newY - currentY) < 0.1 &&
                     Math.abs(currentY - jumpY) < 0.1 &&
                     jumpX > Math.min(currentX, newX) &&
                     jumpX < Math.max(currentX, newX)) {
@@ -512,6 +519,8 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                     newPath += `Q ${jumpX} ${currentY - jumpHeight} ${afterJumpX} ${currentY} `;
                     // Continue to end point
                     newPath += `L ${newX} ${newY} `;
+                    foundJumpPoint = true;
+                    console.log('  Added Q command for jump at x=' + jumpX.toFixed(1));
                 } else {
                     newPath += `L ${newX} ${newY} `;
                 }
