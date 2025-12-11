@@ -707,20 +707,23 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                     otherSegments.vertical.forEach(vSeg => {
                         const intersection = findHorizontalVerticalIntersection(hSeg, vSeg);
                         if (intersection !== null) {
-                            // Check if this is a corner (segments connecting at their endpoints)
-                            const isHorizontalEndpoint =
-                                Math.abs(intersection.x - hSeg.x1) < 0.1 ||
-                                Math.abs(intersection.x - hSeg.x2) < 0.1;
-                            const isVerticalEndpoint =
-                                Math.abs(intersection.y - vSeg.y1) < 0.1 ||
-                                Math.abs(intersection.y - vSeg.y2) < 0.1;
+                            // Check if this is a corner or near-corner
+                            // Add 5px deadzone at the top of vertical lines (minimum Y)
+                            const cornerDeadzone = 5;
+                            const distanceFromVerticalTop = Math.abs(intersection.y - vSeg.y1);
+                            const isNearVerticalTop = distanceFromVerticalTop < cornerDeadzone;
 
-                            const isCorner = isHorizontalEndpoint && isVerticalEndpoint;
+                            // Also check if at horizontal endpoint
+                            const isHorizontalEndpoint =
+                                Math.abs(intersection.x - hSeg.x1) < cornerDeadzone ||
+                                Math.abs(intersection.x - hSeg.x2) < cornerDeadzone;
+
+                            const isCorner = isNearVerticalTop || (isHorizontalEndpoint && distanceFromVerticalTop < 15);
 
                             if (!isCorner) {
                                 jumpsForThisLine.push({ intersection, otherLineKey: otherLine.key, otherLineType: otherLine.type });
                             } else {
-                                console.log('  Skipping corner at x=' + intersection.x.toFixed(1), 'y=' + intersection.y.toFixed(1));
+                                console.log('  Skipping corner/deadzone at x=' + intersection.x.toFixed(1), 'y=' + intersection.y.toFixed(1), '(dist from top:', distanceFromVerticalTop.toFixed(1) + ')');
                             }
                         }
                     });
