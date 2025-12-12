@@ -4,7 +4,12 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
 
     const initialViewState = useMemo(() => {
         const savedState = treeData.viewState?.generationalView;
-        if (!savedState) return { viewTransform: null, nodePositions: new Map(), marriageNodePositions: new Map() };
+        if (!savedState) return {
+            viewTransform: null,
+            nodePositions: new Map(),
+            marriageNodePositions: new Map(),
+            performanceMode: false // Default to animations on
+        };
 
         const nodePositionsMap = new Map();
         if (savedState.nodePositions) {
@@ -23,7 +28,8 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
         return {
             viewTransform: savedState.viewTransform || null,
             nodePositions: nodePositionsMap,
-            marriageNodePositions: marriageNodePositionsMap
+            marriageNodePositions: marriageNodePositionsMap,
+            performanceMode: savedState.performanceMode !== undefined ? savedState.performanceMode : false
         };
     }, []);
 
@@ -38,6 +44,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
     const [lastTouchDistance, setLastTouchDistance] = useState(null);
     const [touchStart, setTouchStart] = useState(null);
     const [isLocked, setIsLocked] = useState(true);
+    const [performanceMode, setPerformanceMode] = useState(initialViewState.performanceMode);
 
     useEffect(() => {
         if (getGenerationalViewStateRef) {
@@ -57,11 +64,12 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                 return {
                     viewTransform: viewTransform,
                     nodePositions: nodePositionsArray,
-                    marriageNodePositions: marriageNodePositionsArray
+                    marriageNodePositions: marriageNodePositionsArray,
+                    performanceMode: performanceMode
                 };
             };
         }
-    }, [viewTransform, nodePositions, marriageNodePositions, getGenerationalViewStateRef]);
+    }, [viewTransform, nodePositions, marriageNodePositions, performanceMode, getGenerationalViewStateRef]);
 
     const generationData = useMemo(() => {
         const allPeople = Object.keys(treeData.people);
@@ -623,7 +631,8 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                 path: `M ${leftParent.x} ${leftParent.y} L ${leftParent.x} ${marriageNodePos.y} L ${marriageNodePos.x} ${marriageNodePos.y}`,
                 type: 'marriage',
                 highlighted: isMarriageHighlighted,
-                relatedPeople: [parent1Id, parent2Id]
+                relatedPeople: [parent1Id, parent2Id],
+                marriageIdx
             });
 
             lines.push({
@@ -631,7 +640,8 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                 path: `M ${rightParent.x} ${rightParent.y} L ${rightParent.x} ${marriageNodePos.y} L ${marriageNodePos.x} ${marriageNodePos.y}`,
                 type: 'marriage',
                 highlighted: isMarriageHighlighted,
-                relatedPeople: [parent1Id, parent2Id]
+                relatedPeople: [parent1Id, parent2Id],
+                marriageIdx
             });
 
             childrenIds.forEach((childId, childIdx) => {
@@ -651,35 +661,34 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                     path: `M ${marriageNodePos.x} ${marriageNodePos.y} L ${marriageNodePos.x} ${intermediateY} L ${childCenterX} ${intermediateY} L ${childCenterX} ${childTopY}`,
                     type: 'parent',
                     highlighted: isParentChildHighlighted,
-                    relatedPeople: [parent1Id, parent2Id, childId]
+                    relatedPeople: [parent1Id, parent2Id, childId],
+                    marriageIdx
                 });
             });
         });
 
+        // OPTIMIZATION: Extract segments once per line to reduce O(N³) to O(N²)
+        const lineSegmentsCache = lines.map(line => ({
+            line,
+            segments: extractSegments(line.path)
+        }));
+
         // Apply jump effect where lines cross (marriage-marriage, marriage-child, child-child from different marriages)
-        const processedLines = lines.map((line, lineIdx) => {
-            const mySegments = extractSegments(line.path);
+        const processedLines = lineSegmentsCache.map(({ line, segments: mySegments }, lineIdx) => {
             let modifiedPath = line.path;
             const jumpsForThisLine = [];
 
-            for (let i = 0; i < lines.length; i++) {
+            for (let i = 0; i < lineSegmentsCache.length; i++) {
                 if (i === lineIdx) continue;
 
-                const otherLine = lines[i];
+                const { line: otherLine, segments: otherSegments } = lineSegmentsCache[i];
 
                 // Skip sibling lines (child lines from same marriage) to avoid jumps on overlapping segments
                 const isSiblingLines = line.type === 'parent' &&
                                       otherLine.type === 'parent' &&
-                                      line.key.startsWith('marriage-to-child-') &&
-                                      otherLine.key.startsWith('marriage-to-child-');
+                                      line.marriageIdx === otherLine.marriageIdx;
 
-                if (isSiblingLines) {
-                    const lineMarriageIdx = line.key.split('-')[3];
-                    const otherLineMarriageIdx = otherLine.key.split('-')[3];
-                    if (lineMarriageIdx === otherLineMarriageIdx) continue;
-                }
-
-                const otherSegments = extractSegments(otherLine.path);
+                if (isSiblingLines) continue;
 
                 mySegments.horizontal.forEach(hSeg => {
                     otherSegments.vertical.forEach(vSeg => {
@@ -742,6 +751,83 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
 
         return nodes;
     }, [layout]);
+
+    // OPTIMIZATION: Pre-calculate all relationships to avoid expensive recalculation on every render
+    const relationshipsMap = useMemo(() => {
+        const map = new Map();
+        if (!treeData.homePerson || !window.calculateRelationship) return map;
+
+        Object.keys(treeData.people).forEach(personId => {
+            if (personId !== treeData.homePerson) {
+                const relationship = window.calculateRelationship(treeData.homePerson, personId, treeData);
+                if (relationship) {
+                    map.set(personId, relationship);
+                }
+            }
+        });
+
+        return map;
+    }, [treeData]);
+
+    // OPTIMIZATION: Calculate visible viewport bounds to cull off-screen nodes
+    const visibleElements = useMemo(() => {
+        if (!viewTransform || !containerRef.current) {
+            return {
+                people: new Set(Object.keys(treeData.people)),
+                marriages: new Set(marriageNodes.map(n => n.id))
+            };
+        }
+
+        const rect = containerRef.current.getBoundingClientRect();
+        const viewportWidth = rect.width;
+        const viewportHeight = rect.height;
+
+        // Calculate viewport bounds in canvas coordinates with some padding
+        const padding = 500; // Render nodes slightly outside viewport
+        const minX = (-viewTransform.x - padding) / viewTransform.scale;
+        const maxX = (viewportWidth - viewTransform.x + padding) / viewTransform.scale;
+        const minY = (-viewTransform.y - padding) / viewTransform.scale;
+        const maxY = (viewportHeight - viewTransform.y + padding) / viewTransform.scale;
+
+        const visiblePeople = new Set();
+        layout.positions.forEach((pos, personId) => {
+            const nodeRight = pos.x + pos.width;
+            const nodeBottom = pos.y + pos.height;
+
+            // Check if node intersects viewport
+            if (nodeRight >= minX && pos.x <= maxX && nodeBottom >= minY && pos.y <= maxY) {
+                visiblePeople.add(personId);
+            }
+        });
+
+        const visibleMarriages = new Set();
+        marriageNodes.forEach(node => {
+            const halfSize = node.size / 2;
+            const nodeLeft = node.x - halfSize;
+            const nodeRight = node.x + halfSize;
+            const nodeTop = node.y - halfSize;
+            const nodeBottom = node.y + halfSize;
+
+            if (nodeRight >= minX && nodeLeft <= maxX && nodeBottom >= minY && nodeTop <= maxY) {
+                visibleMarriages.add(node.id);
+            }
+        });
+
+        return { people: visiblePeople, marriages: visibleMarriages };
+    }, [viewTransform, layout, treeData, marriageNodes]);
+
+    // OPTIMIZATION: Calculate visible lines separately to avoid circular dependency
+    const visibleLines = useMemo(() => {
+        const lines = new Set();
+        connectionLines.forEach(line => {
+            // Check if any of the people involved in this line are visible
+            const hasVisiblePerson = line.relatedPeople.some(personId => visibleElements.people.has(personId));
+            if (hasVisiblePerson) {
+                lines.add(line.key);
+            }
+        });
+        return lines;
+    }, [connectionLines, visibleElements]);
 
     const handleWheel = useCallback((e) => {
         e.preventDefault();
@@ -1187,6 +1273,13 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                 >
                     ↻
                 </button>
+                <button
+                    className={`gen-control-btn ${!performanceMode ? 'active' : ''}`}
+                    onClick={() => setPerformanceMode(!performanceMode)}
+                    title={performanceMode ? "Enable animations (slower)" : "Performance mode (faster)"}
+                >
+                    {performanceMode ? '⚡' : '✨'}
+                </button>
             </div>
 
             {viewTransform && (
@@ -1197,35 +1290,48 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                         transformOrigin: '0 0'
                     }}
                 >
-                <svg className="gen-tree-lines" style={{ overflow: 'visible' }}>
-                    {connectionLines.map(line => (
-                        <path
-                            key={line.key}
-                            d={line.path}
-                            className={`gen-path gen-path-${line.type} ${line.highlighted ? 'gen-path-highlighted' : ''}`}
-                            fill="none"
-                        />
-                    ))}
+                <svg className={`gen-tree-lines ${!performanceMode ? 'animations-enabled' : ''}`} style={{ overflow: 'visible' }}>
+                    {connectionLines.map(line => {
+                        // OPTIMIZATION: Skip rendering off-screen lines
+                        if (!visibleLines.has(line.key)) return null;
+
+                        return (
+                            <path
+                                key={line.key}
+                                d={line.path}
+                                className={`gen-path gen-path-${line.type} ${line.highlighted ? 'gen-path-highlighted' : ''}`}
+                                fill="none"
+                            />
+                        );
+                    })}
                 </svg>
 
-                {marriageNodes.map(node => (
-                    <div
-                        key={node.id}
-                        data-marriage-id={node.id}
-                        className="gen-marriage-node"
-                        style={{
-                            position: 'absolute',
-                            left: `${node.x - node.size / 2}px`,
-                            top: `${node.y - node.size / 2}px`,
-                            width: `${node.size}px`,
-                            height: `${node.size}px`,
-                            cursor: 'grab'
-                        }}
-                    />
-                ))}
+                {marriageNodes.map(node => {
+                    // OPTIMIZATION: Skip rendering off-screen marriage nodes
+                    if (!visibleElements.marriages.has(node.id)) return null;
+
+                    return (
+                        <div
+                            key={node.id}
+                            data-marriage-id={node.id}
+                            className="gen-marriage-node"
+                            style={{
+                                position: 'absolute',
+                                left: `${node.x - node.size / 2}px`,
+                                top: `${node.y - node.size / 2}px`,
+                                width: `${node.size}px`,
+                                height: `${node.size}px`,
+                                cursor: 'grab'
+                            }}
+                        />
+                    );
+                })}
 
                 {generationData.sortedGenerations.map(([genNum, people]) =>
                     people.map(personId => {
+                        // OPTIMIZATION: Skip rendering off-screen nodes
+                        if (!visibleElements.people.has(personId)) return null;
+
                         const person = treeData.people[personId];
                         const pos = layout.positions.get(personId);
 
@@ -1238,9 +1344,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                                           person.gender === 'FEMALE' ? 'avatar-female' : 'avatar-other';
 
                         const isHomePerson = treeData.homePerson === personId;
-                        const relationship = treeData.homePerson && treeData.homePerson !== personId && window.calculateRelationship
-                            ? window.calculateRelationship(treeData.homePerson, personId, treeData)
-                            : null;
+                        const relationship = relationshipsMap.get(personId) || null;
 
                         return (
                             <div
