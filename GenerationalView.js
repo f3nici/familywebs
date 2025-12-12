@@ -8,7 +8,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
             viewTransform: null,
             nodePositions: new Map(),
             marriageNodePositions: new Map(),
-            performanceMode: true // Default to performance mode on
+            performanceMode: false // Default to animations on
         };
 
         const nodePositionsMap = new Map();
@@ -29,7 +29,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
             viewTransform: savedState.viewTransform || null,
             nodePositions: nodePositionsMap,
             marriageNodePositions: marriageNodePositionsMap,
-            performanceMode: savedState.performanceMode !== undefined ? savedState.performanceMode : true
+            performanceMode: savedState.performanceMode !== undefined ? savedState.performanceMode : false
         };
     }, []);
 
