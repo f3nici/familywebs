@@ -5,7 +5,6 @@
 
   **A browser-based visual family tree builder**
 
-  [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
   [![GitHub Pages](https://img.shields.io/badge/demo-live-green.svg)](https://f3nici.github.io/familywebs)
 
 </div>
