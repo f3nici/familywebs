@@ -528,7 +528,8 @@ const FluidTreeControls = ({ nodes, edges, setNodes, isLocked, setIsLocked }) =>
                     {isLocked ? '🔒' : '🔓'}
                 </button>
             </div>
-            <button
+            {/* Regenerate button hidden in view-only mode */}
+            {/* <button
                 className="organize-btn"
                 onClick={handleWebMode}
                 disabled={isApplyingWebMode}
@@ -536,7 +537,7 @@ const FluidTreeControls = ({ nodes, edges, setNodes, isLocked, setIsLocked }) =>
             >
                 <span className="organize-icon">{isApplyingWebMode ? '⏳' : '🔄'}</span>
                 <span className="organize-text">{isApplyingWebMode ? 'Applying...' : 'Regenerate'}</span>
-            </button>
+            </button> */}
         </div>
     );
 };

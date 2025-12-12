@@ -1266,20 +1266,14 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                 >
                     {isLocked ? '🔒' : '🔓'}
                 </button>
-                <button
+                {/* Recalculate button hidden in view-only mode */}
+                {/* <button
                     className="gen-control-btn"
                     onClick={recalculateLayout}
                     title="Recalculate layout (reset all custom positions)"
                 >
                     ↻
-                </button>
-                <button
-                    className={`gen-control-btn ${!performanceMode ? 'active' : ''}`}
-                    onClick={() => setPerformanceMode(!performanceMode)}
-                    title={performanceMode ? "Enable animations (slower)" : "Performance mode (faster)"}
-                >
-                    {performanceMode ? '⚡' : '✨'}
-                </button>
+                </button> */}
             </div>
 
             {viewTransform && (
