@@ -762,7 +762,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
     }, [treeData]);
 
     // OPTIMIZATION: Calculate visible viewport bounds to cull off-screen nodes
-    const visibleNodes = useMemo(() => {
+    const visibleElements = useMemo(() => {
         if (!viewTransform || !containerRef.current) {
             return {
                 people: new Set(Object.keys(treeData.people)),
@@ -807,6 +807,19 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
 
         return { people: visiblePeople, marriages: visibleMarriages };
     }, [viewTransform, layout, treeData, marriageNodes]);
+
+    // OPTIMIZATION: Calculate visible lines separately to avoid circular dependency
+    const visibleLines = useMemo(() => {
+        const lines = new Set();
+        connectionLines.forEach(line => {
+            // Check if any of the people involved in this line are visible
+            const hasVisiblePerson = line.relatedPeople.some(personId => visibleElements.people.has(personId));
+            if (hasVisiblePerson) {
+                lines.add(line.key);
+            }
+        });
+        return lines;
+    }, [connectionLines, visibleElements]);
 
     const handleWheel = useCallback((e) => {
         e.preventDefault();
@@ -1263,19 +1276,24 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                     }}
                 >
                 <svg className="gen-tree-lines" style={{ overflow: 'visible' }}>
-                    {connectionLines.map(line => (
-                        <path
-                            key={line.key}
-                            d={line.path}
-                            className={`gen-path gen-path-${line.type} ${line.highlighted ? 'gen-path-highlighted' : ''}`}
-                            fill="none"
-                        />
-                    ))}
+                    {connectionLines.map(line => {
+                        // OPTIMIZATION: Skip rendering off-screen lines
+                        if (!visibleLines.has(line.key)) return null;
+
+                        return (
+                            <path
+                                key={line.key}
+                                d={line.path}
+                                className={`gen-path gen-path-${line.type} ${line.highlighted ? 'gen-path-highlighted' : ''}`}
+                                fill="none"
+                            />
+                        );
+                    })}
                 </svg>
 
                 {marriageNodes.map(node => {
                     // OPTIMIZATION: Skip rendering off-screen marriage nodes
-                    if (!visibleNodes.marriages.has(node.id)) return null;
+                    if (!visibleElements.marriages.has(node.id)) return null;
 
                     return (
                         <div
@@ -1297,7 +1315,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                 {generationData.sortedGenerations.map(([genNum, people]) =>
                     people.map(personId => {
                         // OPTIMIZATION: Skip rendering off-screen nodes
-                        if (!visibleNodes.people.has(personId)) return null;
+                        if (!visibleElements.people.has(personId)) return null;
 
                         const person = treeData.people[personId];
                         const pos = layout.positions.get(personId);
