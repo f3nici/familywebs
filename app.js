@@ -22,6 +22,7 @@
             eye: '👁',
             home: '🏠',
             help: '?',
+            multiSelect: '⬚',
         };
 
         // Utility Functions
@@ -1432,6 +1433,8 @@
                 const savedTheme = localStorage.getItem('familyTreeTheme');
                 return savedTheme || 'light';
             });
+            const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+            const [selectedNodes, setSelectedNodes] = useState(new Set());
 
             const fileInputRef = useRef(null);
             const getNodePositionsRef = useRef(null);
@@ -1836,6 +1839,21 @@
                                 {theme === 'light' ? '🌙' : '☀️'}
                             </button>
 
+                            {viewMode === 'generational' && (
+                                <button
+                                    className={`btn ${isMultiSelectMode ? 'btn-primary' : 'btn-secondary'}`}
+                                    onClick={() => {
+                                        setIsMultiSelectMode(!isMultiSelectMode);
+                                        if (isMultiSelectMode) {
+                                            setSelectedNodes(new Set());
+                                        }
+                                    }}
+                                    title={isMultiSelectMode ? 'Exit multi-select mode' : 'Multi-select drag mode'}
+                                >
+                                    {Icons.multiSelect} {isMultiSelectMode ? 'Exit Multi-Select' : 'Multi-Select'}
+                                </button>
+                            )}
+
                             <div className="toggle-container">
                                 <span className="toggle-label">{isEditMode ? 'Edit Mode' : 'View Only'}</span>
                                 <div
@@ -1985,6 +2003,9 @@
                                                 setShowMobileDetailPanel(true);
                                             }}
                                             getGenerationalViewStateRef={getGenerationalViewStateRef}
+                                            isMultiSelectMode={isMultiSelectMode}
+                                            selectedNodes={selectedNodes}
+                                            setSelectedNodes={setSelectedNodes}
                                         />
                                     </div>
                                 )
