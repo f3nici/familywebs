@@ -838,7 +838,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
         if (!containerRef.current || !viewTransform) return;
 
         const delta = e.deltaY > 0 ? 0.9 : 1.1;
-        const newScale = Math.min(Math.max(0.1, viewTransform.scale * delta), 3);
+        const newScale = Math.min(Math.max(0.01, viewTransform.scale * delta), 3);
 
         const rect = containerRef.current.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
@@ -1014,7 +1014,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                                 if (pos) {
                                     newPositions.set(nodeId, {
                                         x: pos.x + deltaX,
-                                        y: pos.y + deltaY
+                                        y: pos.y  // Only move horizontally in Generational View
                                     });
                                 }
                             }
@@ -1177,7 +1177,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
             const distance = getTouchDistance(e.touches[0], e.touches[1]);
             const scale = distance / lastTouchDistance;
 
-            const newScale = Math.min(Math.max(0.1, viewTransform.scale * scale), 3);
+            const newScale = Math.min(Math.max(0.01, viewTransform.scale * scale), 3);
 
             if (!containerRef.current) return;
             const rect = containerRef.current.getBoundingClientRect();
@@ -1319,7 +1319,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
     const zoomOut = useCallback(() => {
         if (!viewTransform || !containerRef.current) return;
 
-        const newScale = Math.max(viewTransform.scale * 0.8, 0.1);
+        const newScale = Math.max(viewTransform.scale * 0.8, 0.01);
         const rect = containerRef.current.getBoundingClientRect();
         const centerX = rect.width / 2;
         const centerY = rect.height / 2;

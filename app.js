@@ -1839,20 +1839,18 @@
                                 {theme === 'light' ? '🌙' : '☀️'}
                             </button>
 
-                            {viewMode === 'generational' && (
-                                <button
-                                    className={`btn ${isMultiSelectMode ? 'btn-primary' : 'btn-secondary'}`}
-                                    onClick={() => {
-                                        setIsMultiSelectMode(!isMultiSelectMode);
-                                        if (isMultiSelectMode) {
-                                            setSelectedNodes(new Set());
-                                        }
-                                    }}
-                                    title={isMultiSelectMode ? 'Exit multi-select mode' : 'Multi-select drag mode'}
-                                >
-                                    {Icons.multiSelect} {isMultiSelectMode ? 'Exit Multi-Select' : 'Multi-Select'}
-                                </button>
-                            )}
+                            <button
+                                className={`btn ${isMultiSelectMode ? 'btn-primary' : 'btn-secondary'}`}
+                                onClick={() => {
+                                    setIsMultiSelectMode(!isMultiSelectMode);
+                                    if (isMultiSelectMode) {
+                                        setSelectedNodes(new Set());
+                                    }
+                                }}
+                                title={isMultiSelectMode ? 'Exit multi-select mode' : 'Multi-select drag mode'}
+                            >
+                                {Icons.multiSelect} {isMultiSelectMode ? 'Exit Multi-Select' : 'Multi-Select'}
+                            </button>
 
                             <div className="toggle-container">
                                 <span className="toggle-label">{isEditMode ? 'Edit Mode' : 'View Only'}</span>
@@ -1991,6 +1989,9 @@
                                                 setShowMobileDetailPanel(true);
                                             }}
                                             getNodePositionsRef={getNodePositionsRef}
+                                            isMultiSelectMode={isMultiSelectMode}
+                                            selectedNodes={selectedNodes}
+                                            setSelectedNodes={setSelectedNodes}
                                         />
                                     </div>
                                 ) : (

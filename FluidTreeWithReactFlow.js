@@ -541,7 +541,7 @@ const FluidTreeControls = ({ nodes, edges, setNodes, isLocked, setIsLocked }) =>
     );
 };
 
-const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePositionsRef }) => {
+const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePositionsRef, isMultiSelectMode, selectedNodes, setSelectedNodes }) => {
     const { nodes: initialNodes, edges: initialEdges } = React.useMemo(
         () => calculateFluidLayout(treeData, treeData.viewState),
         [treeData]
@@ -613,6 +613,43 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePosit
         }
     }, [onSelectPerson]);
 
+    const onSelectionChange = React.useCallback(({ nodes: selectedNodesList }) => {
+        if (!isMultiSelectMode || !selectedNodesList) return;
+
+        const newSelectedNodes = new Set();
+
+        // Add all selected nodes
+        selectedNodesList.forEach(node => {
+            newSelectedNodes.add(node.id);
+        });
+
+        // Auto-select marriage nodes that connect selected people
+        treeData.mariages.forEach((marriage, idx) => {
+            if (marriage.length < 2) return;
+            const [parent1, parent2] = marriage;
+            const marriageId = `marriage-${idx}`;
+
+            // If both parents are selected, select the marriage node
+            if (parent1 && parent2 && newSelectedNodes.has(parent1) && newSelectedNodes.has(parent2)) {
+                newSelectedNodes.add(marriageId);
+            }
+        });
+
+        setSelectedNodes(newSelectedNodes);
+    }, [isMultiSelectMode, treeData, setSelectedNodes]);
+
+    // Update node selection state based on selectedNodes
+    React.useEffect(() => {
+        if (isMultiSelectMode && selectedNodes) {
+            setNodes(currentNodes =>
+                currentNodes.map(node => ({
+                    ...node,
+                    selected: selectedNodes.has(node.id)
+                }))
+            );
+        }
+    }, [isMultiSelectMode, selectedNodes, setNodes]);
+
     return (
         <>
             <ReactFlow
@@ -621,16 +658,20 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePosit
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onNodeClick={onNodeClick}
+                onSelectionChange={onSelectionChange}
                 nodeTypes={nodeTypes}
                 edgeTypes={edgeTypes}
                 fitView
-                minZoom={0.1}
+                minZoom={0.01}
                 maxZoom={2}
                 defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
                 nodesDraggable={!isLocked}
                 nodesConnectable={false}
                 elementsSelectable={true}
-                panOnDrag={true}
+                panOnDrag={isMultiSelectMode ? [1, 2] : true}
+                selectionOnDrag={isMultiSelectMode}
+                selectionMode={isMultiSelectMode ? 'partial' : undefined}
+                multiSelectionKeyCode={null}
             >
                 <Background color="#e5ddd2" gap={20} size={1} />
             </ReactFlow>
@@ -639,7 +680,7 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePosit
     );
 };
 
-const FluidTreeWithReactFlow = ({ treeData, selectedPerson, onSelectPerson, getNodePositionsRef }) => {
+const FluidTreeWithReactFlow = ({ treeData, selectedPerson, onSelectPerson, getNodePositionsRef, isMultiSelectMode, selectedNodes, setSelectedNodes }) => {
     if (!ReactFlow) {
         console.error('React Flow not available!');
         return (
@@ -674,6 +715,9 @@ const FluidTreeWithReactFlow = ({ treeData, selectedPerson, onSelectPerson, getN
                     selectedPerson={selectedPerson}
                     onSelectPerson={onSelectPerson}
                     getNodePositionsRef={getNodePositionsRef}
+                    isMultiSelectMode={isMultiSelectMode}
+                    selectedNodes={selectedNodes}
+                    setSelectedNodes={setSelectedNodes}
                 />
             </ReactFlowProvider>
         </div>
