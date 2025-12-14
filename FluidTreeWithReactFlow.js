@@ -668,10 +668,9 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePosit
                 nodesDraggable={!isLocked}
                 nodesConnectable={false}
                 elementsSelectable={true}
-                panOnDrag={isMultiSelectMode ? [1, 2] : true}
+                panOnDrag={isMultiSelectMode ? [2] : true}
                 selectionOnDrag={isMultiSelectMode}
-                selectionMode={isMultiSelectMode ? 'partial' : undefined}
-                multiSelectionKeyCode={null}
+                panOnScroll={isMultiSelectMode}
             >
                 <Background color="#e5ddd2" gap={20} size={1} />
             </ReactFlow>
