@@ -1,4 +1,4 @@
-const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerationalViewStateRef }) => {
+const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerationalViewStateRef, isMultiSelectMode, selectedNodes, setSelectedNodes }) => {
     const { useMemo, useRef, useState, useCallback, useEffect } = React;
     const containerRef = useRef(null);
 
@@ -45,6 +45,8 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
     const [touchStart, setTouchStart] = useState(null);
     const [isLocked, setIsLocked] = useState(true);
     const [performanceMode, setPerformanceMode] = useState(initialViewState.performanceMode);
+    const [selectionRect, setSelectionRect] = useState(null);
+    const [selectionStart, setSelectionStart] = useState(null);
 
     useEffect(() => {
         if (getGenerationalViewStateRef) {
@@ -836,7 +838,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
         if (!containerRef.current || !viewTransform) return;
 
         const delta = e.deltaY > 0 ? 0.9 : 1.1;
-        const newScale = Math.min(Math.max(0.1, viewTransform.scale * delta), 3);
+        const newScale = Math.min(Math.max(0.01, viewTransform.scale * delta), 3);
 
         const rect = containerRef.current.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
@@ -857,16 +859,32 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
             if (isLocked) return; // Don't allow node dragging when locked
             const marriageNodeId = marriageNode.getAttribute('data-marriage-id');
             if (marriageNodeId) {
-                setDraggingNode(marriageNodeId);
-                const pos = layout.marriageNodePositions.get(marriageNodeId);
-                if (pos) {
-                    const canvasRect = containerRef.current.getBoundingClientRect();
-                    const clickX = (e.clientX - canvasRect.left - viewTransform.x) / viewTransform.scale;
-                    const clickY = (e.clientY - canvasRect.top - viewTransform.y) / viewTransform.scale;
-                    setNodeDragStart({
-                        x: clickX - pos.x,
-                        y: clickY - pos.y
-                    });
+                // In multi-select mode, check if clicking on a selected node
+                if (isMultiSelectMode && selectedNodes.has(marriageNodeId)) {
+                    // Start dragging all selected nodes
+                    setDraggingNode(marriageNodeId);
+                    const pos = layout.marriageNodePositions.get(marriageNodeId);
+                    if (pos) {
+                        const canvasRect = containerRef.current.getBoundingClientRect();
+                        const clickX = (e.clientX - canvasRect.left - viewTransform.x) / viewTransform.scale;
+                        const clickY = (e.clientY - canvasRect.top - viewTransform.y) / viewTransform.scale;
+                        setNodeDragStart({
+                            x: clickX - pos.x,
+                            y: clickY - pos.y
+                        });
+                    }
+                } else {
+                    setDraggingNode(marriageNodeId);
+                    const pos = layout.marriageNodePositions.get(marriageNodeId);
+                    if (pos) {
+                        const canvasRect = containerRef.current.getBoundingClientRect();
+                        const clickX = (e.clientX - canvasRect.left - viewTransform.x) / viewTransform.scale;
+                        const clickY = (e.clientY - canvasRect.top - viewTransform.y) / viewTransform.scale;
+                        setNodeDragStart({
+                            x: clickX - pos.x,
+                            y: clickY - pos.y
+                        });
+                    }
                 }
                 e.stopPropagation();
                 return;
@@ -878,21 +896,49 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
             if (isLocked) return; // Don't allow node dragging when locked
             const personId = personCard.getAttribute('data-person-id');
             if (personId) {
-                setDraggingNode(personId);
-                const pos = layout.positions.get(personId);
-                if (pos) {
-                    const rect = personCard.getBoundingClientRect();
-                    const canvasRect = containerRef.current.getBoundingClientRect();
-                    const clickX = (e.clientX - canvasRect.left - viewTransform.x) / viewTransform.scale;
-                    const clickY = (e.clientY - canvasRect.top - viewTransform.y) / viewTransform.scale;
-                    setNodeDragStart({
-                        x: clickX - pos.x,
-                        y: clickY - pos.y
-                    });
+                // In multi-select mode, check if clicking on a selected node
+                if (isMultiSelectMode && selectedNodes.has(personId)) {
+                    // Start dragging all selected nodes
+                    setDraggingNode(personId);
+                    const pos = layout.positions.get(personId);
+                    if (pos) {
+                        const rect = personCard.getBoundingClientRect();
+                        const canvasRect = containerRef.current.getBoundingClientRect();
+                        const clickX = (e.clientX - canvasRect.left - viewTransform.x) / viewTransform.scale;
+                        const clickY = (e.clientY - canvasRect.top - viewTransform.y) / viewTransform.scale;
+                        setNodeDragStart({
+                            x: clickX - pos.x,
+                            y: clickY - pos.y
+                        });
+                    }
+                } else {
+                    setDraggingNode(personId);
+                    const pos = layout.positions.get(personId);
+                    if (pos) {
+                        const rect = personCard.getBoundingClientRect();
+                        const canvasRect = containerRef.current.getBoundingClientRect();
+                        const clickX = (e.clientX - canvasRect.left - viewTransform.x) / viewTransform.scale;
+                        const clickY = (e.clientY - canvasRect.top - viewTransform.y) / viewTransform.scale;
+                        setNodeDragStart({
+                            x: clickX - pos.x,
+                            y: clickY - pos.y
+                        });
+                    }
                 }
                 e.stopPropagation();
                 return;
             }
+        }
+
+        // If in multi-select mode and clicking on canvas, start selection rectangle
+        if (isMultiSelectMode && !isLocked) {
+            const canvasRect = containerRef.current.getBoundingClientRect();
+            const clickX = (e.clientX - canvasRect.left - viewTransform.x) / viewTransform.scale;
+            const clickY = (e.clientY - canvasRect.top - viewTransform.y) / viewTransform.scale;
+            setSelectionStart({ x: clickX, y: clickY });
+            setSelectionRect({ x: clickX, y: clickY, width: 0, height: 0 });
+            e.stopPropagation();
+            return;
         }
 
         // Always allow panning, even when locked
@@ -901,9 +947,24 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
             x: e.clientX - viewTransform.x,
             y: e.clientY - viewTransform.y
         });
-    }, [viewTransform, layout, isLocked]);
+    }, [viewTransform, layout, isLocked, isMultiSelectMode, selectedNodes]);
 
     const handleMouseMove = useCallback((e) => {
+        // Handle selection rectangle drawing
+        if (selectionStart && selectionRect) {
+            const canvasRect = containerRef.current.getBoundingClientRect();
+            const currentX = (e.clientX - canvasRect.left - viewTransform.x) / viewTransform.scale;
+            const currentY = (e.clientY - canvasRect.top - viewTransform.y) / viewTransform.scale;
+
+            setSelectionRect({
+                x: Math.min(selectionStart.x, currentX),
+                y: Math.min(selectionStart.y, currentY),
+                width: Math.abs(currentX - selectionStart.x),
+                height: Math.abs(currentY - selectionStart.y)
+            });
+            return;
+        }
+
         if (draggingNode) {
             const canvasRect = containerRef.current.getBoundingClientRect();
             const mouseX = (e.clientX - canvasRect.left - viewTransform.x) / viewTransform.scale;
@@ -917,20 +978,67 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
             newX = Math.round(newX / GRID_SIZE_X) * GRID_SIZE_X;
             newY = Math.round(newY / GRID_SIZE_Y) * GRID_SIZE_Y;
 
-            if (draggingNode.startsWith('marriage-')) {
-                setMarriageNodePositions(prev => {
-                    const newPositions = new Map(prev);
-                    newPositions.set(draggingNode, { x: newX, y: newY });
-                    return newPositions;
-                });
-            } else {
-                const currentPos = layout.positions.get(draggingNode);
-                if (currentPos) {
+            // If in multi-select mode and dragging a selected node, move all selected nodes
+            if (isMultiSelectMode && selectedNodes.has(draggingNode)) {
+                const isDraggingMarriage = draggingNode.startsWith('marriage-');
+                const oldPos = isDraggingMarriage
+                    ? layout.marriageNodePositions.get(draggingNode)
+                    : layout.positions.get(draggingNode);
+
+                if (oldPos) {
+                    const deltaX = newX - oldPos.x;
+                    const deltaY = newY - oldPos.y;
+
+                    // Move all selected nodes by the same delta
                     setNodePositions(prev => {
                         const newPositions = new Map(prev);
-                        newPositions.set(draggingNode, { x: newX, y: currentPos.y });
+                        selectedNodes.forEach(nodeId => {
+                            if (!nodeId.startsWith('marriage-')) {
+                                const pos = layout.positions.get(nodeId);
+                                if (pos) {
+                                    newPositions.set(nodeId, {
+                                        x: pos.x + deltaX,
+                                        y: pos.y
+                                    });
+                                }
+                            }
+                        });
                         return newPositions;
                     });
+
+                    setMarriageNodePositions(prev => {
+                        const newPositions = new Map(prev);
+                        selectedNodes.forEach(nodeId => {
+                            if (nodeId.startsWith('marriage-')) {
+                                const pos = layout.marriageNodePositions.get(nodeId);
+                                if (pos) {
+                                    newPositions.set(nodeId, {
+                                        x: pos.x + deltaX,
+                                        y: pos.y  // Only move horizontally in Generational View
+                                    });
+                                }
+                            }
+                        });
+                        return newPositions;
+                    });
+                }
+            } else {
+                // Single node dragging
+                if (draggingNode.startsWith('marriage-')) {
+                    setMarriageNodePositions(prev => {
+                        const newPositions = new Map(prev);
+                        newPositions.set(draggingNode, { x: newX, y: newY });
+                        return newPositions;
+                    });
+                } else {
+                    const currentPos = layout.positions.get(draggingNode);
+                    if (currentPos) {
+                        setNodePositions(prev => {
+                            const newPositions = new Map(prev);
+                            newPositions.set(draggingNode, { x: newX, y: currentPos.y });
+                            return newPositions;
+                        });
+                    }
                 }
             }
         } else if (isDragging) {
@@ -940,12 +1048,53 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                 y: e.clientY - dragStart.y
             }));
         }
-    }, [isDragging, draggingNode, dragStart, nodeDragStart, viewTransform, layout]);
+    }, [isDragging, draggingNode, dragStart, nodeDragStart, viewTransform, layout, selectionStart, selectionRect, isMultiSelectMode, selectedNodes]);
 
     const handleMouseUp = useCallback(() => {
+        // Handle selection rectangle completion
+        if (selectionRect && selectionStart) {
+            const newSelectedNodes = new Set();
+
+            // Check which person nodes are within the selection rectangle
+            layout.positions.forEach((pos, personId) => {
+                const nodeWidth = 200; // Approximate width of person card
+                const nodeHeight = 100; // Approximate height of person card
+                const nodeLeft = pos.x;
+                const nodeRight = pos.x + nodeWidth;
+                const nodeTop = pos.y;
+                const nodeBottom = pos.y + nodeHeight;
+
+                const rectLeft = selectionRect.x;
+                const rectRight = selectionRect.x + selectionRect.width;
+                const rectTop = selectionRect.y;
+                const rectBottom = selectionRect.y + selectionRect.height;
+
+                // Check if rectangles overlap
+                if (!(nodeRight < rectLeft || nodeLeft > rectRight || nodeBottom < rectTop || nodeTop > rectBottom)) {
+                    newSelectedNodes.add(personId);
+                }
+            });
+
+            // Auto-select marriage nodes that connect selected people
+            treeData.mariages.forEach((marriage, idx) => {
+                if (marriage.length < 2) return;
+                const [parent1, parent2, ...children] = marriage;
+                const marriageId = `marriage-${idx}`;
+
+                // Select marriage if both parents are selected
+                if (parent1 && parent2 && newSelectedNodes.has(parent1) && newSelectedNodes.has(parent2)) {
+                    newSelectedNodes.add(marriageId);
+                }
+            });
+
+            setSelectedNodes(newSelectedNodes);
+            setSelectionRect(null);
+            setSelectionStart(null);
+        }
+
         setIsDragging(false);
         setDraggingNode(null);
-    }, []);
+    }, [selectionRect, selectionStart, layout, treeData]);
 
     const getTouchDistance = (touch1, touch2) => {
         const dx = touch1.clientX - touch2.clientX;
@@ -1028,7 +1177,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
             const distance = getTouchDistance(e.touches[0], e.touches[1]);
             const scale = distance / lastTouchDistance;
 
-            const newScale = Math.min(Math.max(0.1, viewTransform.scale * scale), 3);
+            const newScale = Math.min(Math.max(0.01, viewTransform.scale * scale), 3);
 
             if (!containerRef.current) return;
             const rect = containerRef.current.getBoundingClientRect();
@@ -1170,7 +1319,7 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
     const zoomOut = useCallback(() => {
         if (!viewTransform || !containerRef.current) return;
 
-        const newScale = Math.max(viewTransform.scale * 0.8, 0.1);
+        const newScale = Math.max(viewTransform.scale * 0.8, 0.01);
         const rect = containerRef.current.getBoundingClientRect();
         const centerX = rect.width / 2;
         const centerY = rect.height / 2;
@@ -1303,11 +1452,13 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                     // OPTIMIZATION: Skip rendering off-screen marriage nodes
                     if (!visibleElements.marriages.has(node.id)) return null;
 
+                    const isSelected = selectedNodes && selectedNodes.has(node.id);
+
                     return (
                         <div
                             key={node.id}
                             data-marriage-id={node.id}
-                            className="gen-marriage-node"
+                            className={`gen-marriage-node ${isSelected ? 'multi-selected' : ''}`}
                             style={{
                                 position: 'absolute',
                                 left: `${node.x - node.size / 2}px`,
@@ -1338,12 +1489,13 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
 
                         const isHomePerson = treeData.homePerson === personId;
                         const relationship = relationshipsMap.get(personId) || null;
+                        const isMultiSelected = selectedNodes && selectedNodes.has(personId);
 
                         return (
                             <div
                                 key={personId}
                                 data-person-id={personId}
-                                className={`gen-person-card ${selectedPerson === personId ? 'selected' : ''} ${isDeceased ? 'deceased' : ''}`}
+                                className={`gen-person-card ${selectedPerson === personId ? 'selected' : ''} ${isDeceased ? 'deceased' : ''} ${isMultiSelected ? 'multi-selected' : ''}`}
                                 style={{
                                     position: 'absolute',
                                     left: `${pos.x}px`,
@@ -1388,6 +1540,23 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                             </div>
                         );
                     })
+                )}
+
+                {/* Render selection rectangle */}
+                {selectionRect && (
+                    <div
+                        className="multi-select-rectangle"
+                        style={{
+                            position: 'absolute',
+                            left: `${selectionRect.x}px`,
+                            top: `${selectionRect.y}px`,
+                            width: `${selectionRect.width}px`,
+                            height: `${selectionRect.height}px`,
+                            border: '4px dashed var(--primary)',
+                            background: 'rgba(74, 144, 226, 0.25)',
+                            pointerEvents: 'none'
+                        }}
+                    />
                 )}
 
                 {generationData.sortedGenerations.length === 0 && (
