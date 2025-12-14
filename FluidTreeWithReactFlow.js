@@ -561,13 +561,16 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePosit
     }, [nodes, getNodePositionsRef]);
 
     React.useEffect(() => {
-        setNodes(currentNodes =>
-            currentNodes.map(node => ({
-                ...node,
-                selected: node.id === selectedPerson
-            }))
-        );
-    }, [selectedPerson, setNodes]);
+        // Only handle single selection when not in multi-select mode
+        if (!isMultiSelectMode) {
+            setNodes(currentNodes =>
+                currentNodes.map(node => ({
+                    ...node,
+                    selected: node.id === selectedPerson
+                }))
+            );
+        }
+    }, [selectedPerson, setNodes, isMultiSelectMode]);
 
     React.useEffect(() => {
         setEdges(currentEdges =>
@@ -598,6 +601,18 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePosit
         }
     }, [treeData, setNodes, setEdges, fitView]);
 
+    // Clear selection when exiting multi-select mode
+    React.useEffect(() => {
+        if (!isMultiSelectMode) {
+            setNodes(currentNodes =>
+                currentNodes.map(node => ({
+                    ...node,
+                    selected: node.id === selectedPerson
+                }))
+            );
+        }
+    }, [isMultiSelectMode, selectedPerson, setNodes]);
+
     const nodeTypes = React.useMemo(() => ({
         personNode: PersonNode,
         marriageNode: MarriageNode,
@@ -616,11 +631,11 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePosit
     const onSelectionChange = React.useCallback(({ nodes: selectedNodesList }) => {
         if (!isMultiSelectMode || !selectedNodesList) return;
 
-        const newSelectedNodes = new Set();
+        const selectedIds = new Set();
 
         // Add all selected nodes
         selectedNodesList.forEach(node => {
-            newSelectedNodes.add(node.id);
+            selectedIds.add(node.id);
         });
 
         // Auto-select marriage nodes that connect selected people
@@ -630,25 +645,24 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePosit
             const marriageId = `marriage-${idx}`;
 
             // If both parents are selected, select the marriage node
-            if (parent1 && parent2 && newSelectedNodes.has(parent1) && newSelectedNodes.has(parent2)) {
-                newSelectedNodes.add(marriageId);
+            if (parent1 && parent2 && selectedIds.has(parent1) && selectedIds.has(parent2)) {
+                selectedIds.add(marriageId);
             }
         });
 
-        setSelectedNodes(newSelectedNodes);
-    }, [isMultiSelectMode, treeData, setSelectedNodes]);
+        // Immediately update nodes with the new selection including marriage nodes
+        setNodes(currentNodes =>
+            currentNodes.map(node => ({
+                ...node,
+                selected: selectedIds.has(node.id)
+            }))
+        );
 
-    // Update node selection state based on selectedNodes
-    React.useEffect(() => {
-        if (isMultiSelectMode && selectedNodes) {
-            setNodes(currentNodes =>
-                currentNodes.map(node => ({
-                    ...node,
-                    selected: selectedNodes.has(node.id)
-                }))
-            );
+        // Also update the parent component's selected nodes state
+        if (setSelectedNodes) {
+            setSelectedNodes(selectedIds);
         }
-    }, [isMultiSelectMode, selectedNodes, setNodes]);
+    }, [isMultiSelectMode, treeData, setNodes, setSelectedNodes]);
 
     return (
         <>
