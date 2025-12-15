@@ -299,20 +299,20 @@
    ========================================== */
 
 .react-flow__minimap {
-    background: var(--bg-card);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-soft);
+    background: var(--bg-card) !important;
+    border: 2px solid var(--border-subtle) !important;
+    border-radius: var(--radius-sm) !important;
+    box-shadow: var(--shadow-soft) !important;
 }
 
 .react-flow__minimap-mask {
-    fill: var(--accent-warm-light);
-    fill-opacity: 0.3;
+    fill: var(--primary) !important;
+    fill-opacity: 0.1 !important;
 }
 
 .react-flow__minimap-node {
-    fill: var(--accent-warm);
-    stroke: none;
+    fill: var(--primary) !important;
+    stroke: none !important;
 }
 
 /* ==========================================

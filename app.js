@@ -22,6 +22,7 @@
             eye: '👁',
             home: '🏠',
             help: '?',
+            multiSelect: '⬚',
         };
 
         // Utility Functions
@@ -1422,6 +1423,8 @@
                 const savedTheme = localStorage.getItem('familyTreeTheme');
                 return savedTheme || 'light';
             });
+            const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+            const [selectedNodes, setSelectedNodes] = useState(new Set());
 
             const fileInputRef = useRef(null);
             const getNodePositionsRef = useRef(null);
@@ -1974,6 +1977,9 @@
                                                 setShowMobileDetailPanel(true);
                                             }}
                                             getNodePositionsRef={getNodePositionsRef}
+                                            isMultiSelectMode={isMultiSelectMode}
+                                            selectedNodes={selectedNodes}
+                                            setSelectedNodes={setSelectedNodes}
                                         />
                                     </div>
                                 ) : (
@@ -1986,6 +1992,9 @@
                                                 setShowMobileDetailPanel(true);
                                             }}
                                             getGenerationalViewStateRef={getGenerationalViewStateRef}
+                                            isMultiSelectMode={isMultiSelectMode}
+                                            selectedNodes={selectedNodes}
+                                            setSelectedNodes={setSelectedNodes}
                                         />
                                     </div>
                                 )

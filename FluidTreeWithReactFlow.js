@@ -1,6 +1,7 @@
 const {
     ReactFlow,
     Background,
+    MiniMap,
     useNodesState,
     useEdgesState,
     Handle,
@@ -542,18 +543,62 @@ const FluidTreeControls = ({ nodes, edges, setNodes, isLocked, setIsLocked }) =>
     );
 };
 
-const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePositionsRef }) => {
+const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePositionsRef, isMultiSelectMode, selectedNodes, setSelectedNodes }) => {
     const { nodes: initialNodes, edges: initialEdges } = React.useMemo(
         () => calculateFluidLayout(treeData, treeData.viewState),
         [treeData]
     );
 
-    const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+    const [nodes, setNodes, onNodesChangeBase] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
     const [isLocked, setIsLocked] = React.useState(true);
 
     const prevTreeDataRef = React.useRef(treeData);
     const { fitView } = useReactFlow();
+
+    // Custom onNodesChange handler that adds marriage nodes to selection
+    const onNodesChange = React.useCallback((changes) => {
+        // First apply the changes normally
+        onNodesChangeBase(changes);
+
+        // If in multi-select mode and there are selection changes, add marriage nodes
+        if (isMultiSelectMode) {
+            const hasSelectionChange = changes.some(change => change.type === 'select');
+            if (hasSelectionChange) {
+                // Small delay to let the base selection update first
+                setTimeout(() => {
+                    setNodes(currentNodes => {
+                        const selectedIds = new Set();
+
+                        // Collect currently selected nodes
+                        currentNodes.forEach(node => {
+                            if (node.selected) {
+                                selectedIds.add(node.id);
+                            }
+                        });
+
+                        // Find marriage nodes that should be selected
+                        treeData.mariages.forEach((marriage, idx) => {
+                            if (marriage.length < 2) return;
+                            const [parent1, parent2] = marriage;
+                            const marriageId = `marriage-${idx}`;
+
+                            // If both parents are selected, select the marriage node
+                            if (parent1 && parent2 && selectedIds.has(parent1) && selectedIds.has(parent2)) {
+                                selectedIds.add(marriageId);
+                            }
+                        });
+
+                        // Update nodes with marriage nodes selected
+                        return currentNodes.map(node => ({
+                            ...node,
+                            selected: selectedIds.has(node.id)
+                        }));
+                    });
+                }, 0);
+            }
+        }
+    }, [onNodesChangeBase, isMultiSelectMode, treeData, setNodes]);
 
     React.useEffect(() => {
         if (getNodePositionsRef) {
@@ -562,13 +607,16 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePosit
     }, [nodes, getNodePositionsRef]);
 
     React.useEffect(() => {
-        setNodes(currentNodes =>
-            currentNodes.map(node => ({
-                ...node,
-                selected: node.id === selectedPerson
-            }))
-        );
-    }, [selectedPerson, setNodes]);
+        // Only handle single selection when not in multi-select mode
+        if (!isMultiSelectMode) {
+            setNodes(currentNodes =>
+                currentNodes.map(node => ({
+                    ...node,
+                    selected: node.id === selectedPerson
+                }))
+            );
+        }
+    }, [selectedPerson, setNodes, isMultiSelectMode]);
 
     React.useEffect(() => {
         setEdges(currentEdges =>
@@ -599,6 +647,18 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePosit
         }
     }, [treeData, setNodes, setEdges, fitView]);
 
+    // Clear selection when exiting multi-select mode
+    React.useEffect(() => {
+        if (!isMultiSelectMode) {
+            setNodes(currentNodes =>
+                currentNodes.map(node => ({
+                    ...node,
+                    selected: node.id === selectedPerson
+                }))
+            );
+        }
+    }, [isMultiSelectMode, selectedPerson, setNodes]);
+
     const nodeTypes = React.useMemo(() => ({
         personNode: PersonNode,
         marriageNode: MarriageNode,
@@ -625,22 +685,44 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePosit
                 nodeTypes={nodeTypes}
                 edgeTypes={edgeTypes}
                 fitView
-                minZoom={0.1}
+                minZoom={0.01}
                 maxZoom={2}
                 defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
                 nodesDraggable={!isLocked}
                 nodesConnectable={false}
                 elementsSelectable={true}
-                panOnDrag={true}
+                panOnDrag={isMultiSelectMode ? [2] : true}
+                selectionOnDrag={isMultiSelectMode}
+                panOnScroll={isMultiSelectMode}
             >
                 <Background color="#e5ddd2" gap={20} size={1} />
+                {MiniMap && (
+                    <MiniMap
+                        position="bottom-left"
+                        nodeColor={(node) => {
+                            if (node.type === 'personNode') {
+                                return 'var(--primary)';
+                            }
+                            return 'var(--accent-warm)';
+                        }}
+                        maskColor="rgba(196, 149, 106, 0.1)"
+                        style={{
+                            background: 'var(--bg-card)',
+                            border: '2px solid var(--border-subtle)',
+                            borderRadius: '8px'
+                        }}
+                    />
+                )}
             </ReactFlow>
             <FluidTreeControls nodes={nodes} edges={edges} setNodes={setNodes} isLocked={isLocked} setIsLocked={setIsLocked} />
+
+            {/* Legend */}
+            {window.Legend && <window.Legend />}
         </>
     );
 };
 
-const FluidTreeWithReactFlow = ({ treeData, selectedPerson, onSelectPerson, getNodePositionsRef }) => {
+const FluidTreeWithReactFlow = ({ treeData, selectedPerson, onSelectPerson, getNodePositionsRef, isMultiSelectMode, selectedNodes, setSelectedNodes }) => {
     if (!ReactFlow) {
         console.error('React Flow not available!');
         return (
@@ -675,6 +757,9 @@ const FluidTreeWithReactFlow = ({ treeData, selectedPerson, onSelectPerson, getN
                     selectedPerson={selectedPerson}
                     onSelectPerson={onSelectPerson}
                     getNodePositionsRef={getNodePositionsRef}
+                    isMultiSelectMode={isMultiSelectMode}
+                    selectedNodes={selectedNodes}
+                    setSelectedNodes={setSelectedNodes}
                 />
             </ReactFlowProvider>
         </div>
