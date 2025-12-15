@@ -1390,6 +1390,24 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
         });
     };
 
+    const handleMinimapClick = useCallback((canvasX, canvasY) => {
+        if (!containerRef.current || !viewTransform) return;
+
+        const rect = containerRef.current.getBoundingClientRect();
+        const viewportWidth = rect.width;
+        const viewportHeight = rect.height;
+
+        // Center the viewport on the clicked position
+        const newX = viewportWidth / 2 - canvasX * viewTransform.scale;
+        const newY = viewportHeight / 2 - canvasY * viewTransform.scale;
+
+        setViewTransform(prev => ({
+            ...prev,
+            x: newX,
+            y: newY
+        }));
+    }, [viewTransform]);
+
     return (
         <div
             className="generational-view-container"
@@ -1569,6 +1587,19 @@ const GenerationalView = ({ treeData, selectedPerson, onSelectPerson, getGenerat
                     </div>
                 )}
             </div>
+            )}
+
+            {/* Legend */}
+            {window.Legend && <window.Legend />}
+
+            {/* Minimap */}
+            {window.GenerationalMinimap && (
+                <window.GenerationalMinimap
+                    layout={layout}
+                    viewTransform={viewTransform}
+                    containerRef={containerRef}
+                    onViewportClick={handleMinimapClick}
+                />
             )}
         </div>
     );

@@ -1,6 +1,7 @@
 const {
     ReactFlow,
     Background,
+    MiniMap,
     useNodesState,
     useEdgesState,
     Handle,
@@ -694,8 +695,28 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePosit
                 panOnScroll={isMultiSelectMode}
             >
                 <Background color="#e5ddd2" gap={20} size={1} />
+                {MiniMap && (
+                    <MiniMap
+                        position="bottom-left"
+                        nodeColor={(node) => {
+                            if (node.type === 'personNode') {
+                                return 'var(--primary)';
+                            }
+                            return 'var(--accent-warm)';
+                        }}
+                        maskColor="rgba(196, 149, 106, 0.1)"
+                        style={{
+                            background: 'var(--bg-card)',
+                            border: '2px solid var(--border-subtle)',
+                            borderRadius: '8px'
+                        }}
+                    />
+                )}
             </ReactFlow>
             <FluidTreeControls nodes={nodes} edges={edges} setNodes={setNodes} isLocked={isLocked} setIsLocked={setIsLocked} />
+
+            {/* Legend */}
+            {window.Legend && <window.Legend />}
         </>
     );
 };
