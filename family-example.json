@@ -1,0 +1,68 @@
+{
+  "id": "sample-family-tree",
+  "createdAt": "2025-12-11T00:00:00.000Z",
+  "updatedAt": "2025-12-11T00:00:00.000Z",
+  "name": "Sample Family Tree",
+  "events": ["$_BIRTH", "$_MARRIED", "$_LIVED_AT", "$_DEATH"],
+  "attributes": [],
+  "people": {
+    "person1": {
+      "id": "person1",
+      "name": "John",
+      "surname": "Smith",
+      "sex": "M",
+      "birthDate": "1950-01-15",
+      "birthPlace": "New York, NY",
+      "photo": ""
+    },
+    "person2": {
+      "id": "person2",
+      "name": "Mary",
+      "surname": "Smith",
+      "maidenName": "Johnson",
+      "sex": "F",
+      "birthDate": "1952-03-20",
+      "birthPlace": "Boston, MA",
+      "photo": ""
+    },
+    "person3": {
+      "id": "person3",
+      "name": "Robert",
+      "surname": "Smith",
+      "sex": "M",
+      "birthDate": "1975-06-10",
+      "birthPlace": "Chicago, IL",
+      "photo": ""
+    },
+    "person4": {
+      "id": "person4",
+      "name": "Sarah",
+      "surname": "Smith",
+      "maidenName": "Williams",
+      "sex": "F",
+      "birthDate": "1977-08-25",
+      "birthPlace": "Los Angeles, CA",
+      "photo": ""
+    }
+  },
+  "mariages": [
+    ["person1", "person2", "person3"],
+    ["person3", "person4"]
+  ],
+  "homePerson": "person1",
+  "viewState": {
+    "nodes": [
+      {"id": "person1", "x": 100, "y": 100},
+      {"id": "person2", "x": 300, "y": 100},
+      {"id": "m-person1-person2", "x": 200, "y": 100},
+      {"id": "person3", "x": 200, "y": 250},
+      {"id": "person4", "x": 400, "y": 250},
+      {"id": "m-person3-person4", "x": 300, "y": 250}
+    ],
+    "generationalView": {
+      "zoom": 1,
+      "panX": 0,
+      "panY": 0
+    }
+  }
+}
