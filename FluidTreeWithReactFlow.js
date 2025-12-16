@@ -543,10 +543,18 @@ const FluidTreeControls = ({ nodes, edges, setNodes, isLocked, setIsLocked }) =>
 };
 
 const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePositionsRef, isMultiSelectMode, selectedNodes, setSelectedNodes }) => {
-    // Only recalculate layout when people are added/removed, not when relationships change
+    // Track people count to detect when people are added/removed
+    const peopleCount = Object.keys(treeData.people).length;
+    const peopleCountRef = React.useRef(peopleCount);
+
+    // Only recalculate initial layout when people count actually changes
     const { nodes: initialNodes, edges: initialEdges } = React.useMemo(
-        () => calculateFluidLayout(treeData, treeData.viewState),
-        [Object.keys(treeData.people).length, treeData.viewState]
+        () => {
+            const result = calculateFluidLayout(treeData, treeData.viewState);
+            peopleCountRef.current = peopleCount;
+            return result;
+        },
+        [peopleCount]
     );
 
     const [nodes, setNodes, onNodesChangeBase] = useNodesState(initialNodes);
@@ -640,34 +648,49 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePosit
             const marriageNodeSize = 30;
 
             setNodes(currentNodes => {
-                // Keep all person nodes unchanged
-                const personNodes = currentNodes.filter(n => n.type === 'personNode');
-                const newMarriageNodes = [];
+                // Build a set of current marriage IDs we need
+                const neededMarriageIds = new Set();
+                treeData.mariages.forEach((marriage) => {
+                    if (marriage.length < 2) return;
+                    const parent1Id = marriage[0];
+                    const parent2Id = marriage[1];
+                    neededMarriageIds.add(`marriage-${parent1Id}-${parent2Id}`);
+                });
 
-                // Create marriage nodes for current relationships
-                treeData.mariages.forEach((marriage, marriageIdx) => {
+                // Keep all person nodes, and marriage nodes that still exist
+                // Create new object references to ensure React Flow recognizes the update
+                const keptNodes = currentNodes
+                    .filter(node => {
+                        if (node.type === 'personNode') return true;
+                        if (node.type === 'marriageNode') return neededMarriageIds.has(node.id);
+                        return false;
+                    })
+                    .map(node => ({
+                        ...node,
+                        position: { x: node.position.x, y: node.position.y }
+                    }));
+
+                // Find which marriage nodes we need to add
+                treeData.mariages.forEach((marriage) => {
                     if (marriage.length < 2) return;
 
                     const parent1Id = marriage[0];
                     const parent2Id = marriage[1];
                     const marriageNodeId = `marriage-${parent1Id}-${parent2Id}`;
 
-                    // Check if this marriage node already exists with this ID
-                    const existingNode = currentNodes.find(n => n.id === marriageNodeId);
+                    // Check if this marriage node already exists in keptNodes
+                    const exists = keptNodes.some(n => n.id === marriageNodeId);
 
-                    if (existingNode) {
-                        // Keep existing marriage node with its position
-                        newMarriageNodes.push(existingNode);
-                    } else {
-                        // New marriage - calculate default position
-                        const parent1Node = personNodes.find(n => n.id === parent1Id);
-                        const parent2Node = personNodes.find(n => n.id === parent2Id);
+                    if (!exists) {
+                        // New marriage - calculate default position and add it
+                        const parent1Node = keptNodes.find(n => n.id === parent1Id);
+                        const parent2Node = keptNodes.find(n => n.id === parent2Id);
 
                         if (parent1Node && parent2Node) {
                             const defaultMarriageX = (parent1Node.position.x + parent2Node.position.x) / 2 + nodeWidth / 2;
                             const defaultMarriageY = Math.max(parent1Node.position.y, parent2Node.position.y) + nodeHeight + 40;
 
-                            newMarriageNodes.push({
+                            keptNodes.push({
                                 id: marriageNodeId,
                                 type: 'marriageNode',
                                 position: { x: defaultMarriageX - marriageNodeSize / 2, y: defaultMarriageY },
@@ -677,7 +700,7 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePosit
                     }
                 });
 
-                return [...personNodes, ...newMarriageNodes];
+                return keptNodes;
             });
 
             setEdges(currentEdges => {
