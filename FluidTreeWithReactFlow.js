@@ -647,30 +647,26 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePosit
             const nodeHeight = 140;
             const marriageNodeSize = 30;
 
-            setNodes(currentNodes => {
-                // Build a set of current marriage IDs we need
-                const neededMarriageIds = new Set();
-                treeData.mariages.forEach((marriage) => {
-                    if (marriage.length < 2) return;
-                    const parent1Id = marriage[0];
-                    const parent2Id = marriage[1];
-                    neededMarriageIds.add(`marriage-${parent1Id}-${parent2Id}`);
-                });
+            // Build a set of current marriage IDs we need
+            const neededMarriageIds = new Set();
+            treeData.mariages.forEach((marriage) => {
+                if (marriage.length < 2) return;
+                const parent1Id = marriage[0];
+                const parent2Id = marriage[1];
+                neededMarriageIds.add(`marriage-${parent1Id}-${parent2Id}`);
+            });
 
-                // Keep all person nodes, and marriage nodes that still exist
-                // Create new object references to ensure React Flow recognizes the update
-                const keptNodes = currentNodes
-                    .filter(node => {
-                        if (node.type === 'personNode') return true;
-                        if (node.type === 'marriageNode') return neededMarriageIds.has(node.id);
-                        return false;
-                    })
-                    .map(node => ({
-                        ...node,
-                        position: { x: node.position.x, y: node.position.y }
-                    }));
+            setNodes(currentNodes => {
+                // Find nodes to remove
+                const nodesToRemove = currentNodes.filter(
+                    node => node.type === 'marriageNode' && !neededMarriageIds.has(node.id)
+                ).map(node => node.id);
+
+                // Remove old marriage nodes (keep references to all other nodes)
+                let updatedNodes = currentNodes.filter(node => !nodesToRemove.includes(node.id));
 
                 // Find which marriage nodes we need to add
+                const nodesToAdd = [];
                 treeData.mariages.forEach((marriage) => {
                     if (marriage.length < 2) return;
 
@@ -678,19 +674,19 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePosit
                     const parent2Id = marriage[1];
                     const marriageNodeId = `marriage-${parent1Id}-${parent2Id}`;
 
-                    // Check if this marriage node already exists in keptNodes
-                    const exists = keptNodes.some(n => n.id === marriageNodeId);
+                    // Check if this marriage node already exists
+                    const exists = updatedNodes.some(n => n.id === marriageNodeId);
 
                     if (!exists) {
                         // New marriage - calculate default position and add it
-                        const parent1Node = keptNodes.find(n => n.id === parent1Id);
-                        const parent2Node = keptNodes.find(n => n.id === parent2Id);
+                        const parent1Node = updatedNodes.find(n => n.id === parent1Id);
+                        const parent2Node = updatedNodes.find(n => n.id === parent2Id);
 
                         if (parent1Node && parent2Node) {
                             const defaultMarriageX = (parent1Node.position.x + parent2Node.position.x) / 2 + nodeWidth / 2;
                             const defaultMarriageY = Math.max(parent1Node.position.y, parent2Node.position.y) + nodeHeight + 40;
 
-                            keptNodes.push({
+                            nodesToAdd.push({
                                 id: marriageNodeId,
                                 type: 'marriageNode',
                                 position: { x: defaultMarriageX - marriageNodeSize / 2, y: defaultMarriageY },
@@ -700,13 +696,20 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePosit
                     }
                 });
 
-                return keptNodes;
+                // Only create a new array if we have changes
+                if (nodesToRemove.length > 0 || nodesToAdd.length > 0) {
+                    return [...updatedNodes, ...nodesToAdd];
+                }
+
+                return currentNodes;
             });
 
             setEdges(currentEdges => {
-                const newEdges = [];
+                // Build set of edge IDs we need to keep
+                const neededEdgeIds = new Set();
+                const edgesToAdd = [];
 
-                treeData.mariages.forEach((marriage, marriageIdx) => {
+                treeData.mariages.forEach((marriage) => {
                     if (marriage.length < 2) return;
 
                     const parent1Id = marriage[0];
@@ -714,55 +717,63 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePosit
                     const childrenIds = marriage.slice(2);
                     const marriageNodeId = `marriage-${parent1Id}-${parent2Id}`;
 
-                    // Parent to marriage edges
-                    newEdges.push({
-                        id: `edge-${parent1Id}-to-${marriageNodeId}`,
-                        source: parent1Id,
-                        sourceHandle: 'source-bottom',
-                        target: marriageNodeId,
-                        targetHandle: 'target-top',
-                        type: 'fluidEdge',
-                        data: {
-                            type: 'marriage',
-                            parent1Id,
-                            parent2Id
-                        },
-                    });
+                    const edge1Id = `edge-${parent1Id}-to-${marriageNodeId}`;
+                    const edge2Id = `edge-${parent2Id}-to-${marriageNodeId}`;
+                    neededEdgeIds.add(edge1Id);
+                    neededEdgeIds.add(edge2Id);
 
-                    newEdges.push({
-                        id: `edge-${parent2Id}-to-${marriageNodeId}`,
-                        source: parent2Id,
-                        sourceHandle: 'source-bottom',
-                        target: marriageNodeId,
-                        targetHandle: 'target-top',
-                        type: 'fluidEdge',
-                        data: {
-                            type: 'marriage',
-                            parent1Id,
-                            parent2Id
-                        },
-                    });
-
-                    // Marriage to children edges
-                    childrenIds.forEach(childId => {
-                        newEdges.push({
-                            id: `edge-${marriageNodeId}-to-${childId}`,
-                            source: marriageNodeId,
+                    // Check if edges exist, if not add them
+                    if (!currentEdges.find(e => e.id === edge1Id)) {
+                        edgesToAdd.push({
+                            id: edge1Id,
+                            source: parent1Id,
                             sourceHandle: 'source-bottom',
-                            target: childId,
+                            target: marriageNodeId,
                             targetHandle: 'target-top',
                             type: 'fluidEdge',
-                            data: {
-                                type: 'child',
-                                parent1Id,
-                                parent2Id,
-                                childId
-                            },
+                            data: { type: 'marriage', parent1Id, parent2Id },
                         });
+                    }
+
+                    if (!currentEdges.find(e => e.id === edge2Id)) {
+                        edgesToAdd.push({
+                            id: edge2Id,
+                            source: parent2Id,
+                            sourceHandle: 'source-bottom',
+                            target: marriageNodeId,
+                            targetHandle: 'target-top',
+                            type: 'fluidEdge',
+                            data: { type: 'marriage', parent1Id, parent2Id },
+                        });
+                    }
+
+                    childrenIds.forEach(childId => {
+                        const childEdgeId = `edge-${marriageNodeId}-to-${childId}`;
+                        neededEdgeIds.add(childEdgeId);
+
+                        if (!currentEdges.find(e => e.id === childEdgeId)) {
+                            edgesToAdd.push({
+                                id: childEdgeId,
+                                source: marriageNodeId,
+                                sourceHandle: 'source-bottom',
+                                target: childId,
+                                targetHandle: 'target-top',
+                                type: 'fluidEdge',
+                                data: { type: 'child', parent1Id, parent2Id, childId },
+                            });
+                        }
                     });
                 });
 
-                return newEdges;
+                // Remove edges that are no longer needed
+                const keptEdges = currentEdges.filter(edge => neededEdgeIds.has(edge.id));
+
+                // Only create new array if there are changes
+                if (keptEdges.length !== currentEdges.length || edgesToAdd.length > 0) {
+                    return [...keptEdges, ...edgesToAdd];
+                }
+
+                return currentEdges;
             });
 
             prevMarriagesRef.current = treeData.mariages;
@@ -807,6 +818,7 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePosit
                 nodeTypes={nodeTypes}
                 edgeTypes={edgeTypes}
                 fitView
+                fitViewOptions={{ duration: 0 }}
                 minZoom={0.01}
                 maxZoom={2}
                 defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
@@ -816,6 +828,8 @@ const FluidTreeInner = ({ treeData, selectedPerson, onSelectPerson, getNodePosit
                 panOnDrag={isMultiSelectMode ? [2] : true}
                 selectionOnDrag={isMultiSelectMode}
                 panOnScroll={isMultiSelectMode}
+                autoPanOnNodeDrag={false}
+                autoPanOnConnect={false}
             >
                 <Background color="#e5ddd2" gap={20} size={1} />
                 {MiniMap && (
